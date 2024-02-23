@@ -51,8 +51,8 @@
 #define MAX_LOADSTRING 100
 
 #define _USE_MATH_DEFINES
-
-#define MAX_BUFF_SIZE 10240
+//Abandoned personal constant
+//#define MAX_BUFF_SIZE 10240
 
 using namespace std;
 using namespace BSP;
@@ -84,6 +84,35 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+//For F2 (reading file)
+HANDLE              hFile;
+OVERLAPPED          lpOverlapped = {0};
+int                 itrCounts = 0;
+
+VOID CALLBACK 
+    AsynchIOCompletionRoutine(
+
+                                __in  DWORD dwErrorCode,
+                                __in  DWORD dwNumberOfBytesTransfered,
+                                __in  LPOVERLAPPED lpOverlapped
+);
+
+VOID CALLBACK 
+    AsynchIOCompletionRoutine(
+                                __in  DWORD dwErrorCode,
+                                __in  DWORD dwNumberOfBytesTransfered,
+                                __in  LPOVERLAPPED lpOverlapped ) {
+                                   /*
+                                  _tprintf(TEXT("Error code:\t%x\n"), dwErrorCode);
+                                  _tprintf(TEXT("Number of bytes:\t%x\n"), dwNumberOfBytesTransfered);
+
+                                   = dwNumberOfBytesTransfered;
+                                  */
+                                  ++itrCounts;
+                                  lpOverlapped->Offset += dwNumberOfBytesTransfered;
+ }
+
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -230,21 +259,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
     LONG_PTR                   ptr = GetWindowLongPtr(hWnd, GWLP_USERDATA);
     StateProperties*           pStateProperties = reinterpret_cast<StateProperties*>(ptr);
-    HANDLE                     hFile;
-    OVERLAPPED                 rOverlap = {0};
 
     TCHAR                      scroll_bar[]     = L"Scroll bar called";
-    TCHAR                      text_buffer[ MAX_BUFF_SIZE ] = { '\0' };
+    TCHAR                      text_buffer[ MAX_LOADSTRING ] = { '\0' };
     string                     strbuff          = "";
-    char                       fMaze[ MAX_BUFF_SIZE ] = { '\0' };
+    char                       fMaze[ MAX_LOADSTRING ] = { '\0' };
     
     if ( !(pStateProperties == nullptr) ) {
 
         bool statesChk = 
                 pStateProperties->F2ed || 
                 pStateProperties->started || 
-                pStateProperties->TABed ? 
-                    true : false;
+                pStateProperties->TABed ? true : false;
 
         if ( statesChk ) 
             strbuff = pStateProperties->F2Mssg;       
@@ -284,7 +310,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
     std::function<void()> read_maze = [ &fMaze, &text_buffer ]() {
         
-        for ( int i = 0; i< MAX_BUFF_SIZE; ++i  ) text_buffer [ i ] = fMaze [ i ];
+        for ( int i = 0; i< MAX_LOADSTRING; ++i  ) text_buffer [ i ] = fMaze [ i ];
     };
 
     std::function<void( D2D1::ColorF )> fill_rectangle_color = [ &pRenderTarget, &pBrush ]
@@ -292,95 +318,96 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                pRenderTarget->CreateSolidColorBrush( color,&pBrush );
     };
 
-     std::function<void()> scroll_screen =  [ &hWnd ] () {
-                                                             ScrollWindowEx(
+     std::function<void()> scroll_screen = [ &hWnd ] () {
 
-                                                                                hWnd, 
-                                                                                000, 
-                                                                                1000, 
-                                                                                (CONST RECT *) NULL, 
-                                                                                (CONST RECT *) NULL, 
-                                                                                (HRGN) NULL, 
-                                                                                (PRECT) NULL, 
-                                                                                SW_INVALIDATE
-                                                            ); 
+                                                            ScrollWindowEx(
+
+                                                                            hWnd, 
+                                                                            000, 
+                                                                            1000, 
+                                                                            (CONST RECT *) NULL, 
+                                                                            (CONST RECT *) NULL, 
+                                                                            (HRGN) NULL, 
+                                                                            (PRECT) NULL, 
+                                                                            SW_INVALIDATE
+                                                        ); 
     };    
 
      std::function<void()>
-         load_maze = [ 
+         load_maze=[ 
              
-                        &pRenderTarget, 
-                        &rectangle, 
-                        &pBrush, 
-                        &set_rectangle_location, 
-                        &fill_rectangle_color ]() {
+                    &pRenderTarget, 
+                    &rectangle, 
+                    &pBrush, 
+                    &set_rectangle_location, 
+                    &fill_rectangle_color ]() {
 
-                                                    pRenderTarget->BeginDraw();
-                                                    pRenderTarget->Clear( 
+                                                pRenderTarget->BeginDraw();
+                                                pRenderTarget->Clear( 
 
-                                                        D2D1::ColorF( D2D1::ColorF::White ) 
-                                                    ); 
+                                                    D2D1::ColorF( D2D1::ColorF::White ) 
+                                                ); 
 
-                                                    set_rectangle_location( 
+                                                set_rectangle_location( 
 
-                                                                            0, 
-                                                                            0, 
-                                                                            GetSystemMetrics( SM_CXSCREEN ), 
-                                                                            GetSystemMetrics( SM_CYSCREEN ) 
-                                                    );
+                                                                        0, 
+                                                                        0, 
+                                                                        GetSystemMetrics( SM_CXSCREEN ), 
+                                                                        GetSystemMetrics( SM_CYSCREEN ) 
+                                                );
 
-                                                    fill_rectangle_color( D2D1::ColorF::White );
-                                                    pRenderTarget->FillRectangle( rectangle, pBrush);
-                                                    pRenderTarget->EndDraw();
+                                                fill_rectangle_color( D2D1::ColorF::White );
+                                                pRenderTarget->FillRectangle( rectangle, pBrush);
+                                                pRenderTarget->EndDraw();
      };
 
      std::function<void()> clean_field = [ 
              
-                                            &pRenderTarget, 
-                                            &rectangle, 
-                                            &pBrush, 
-                                            &set_rectangle_location, 
-                                            &fill_rectangle_color,
-                                            &hWnd,
-                                            &rc,
-                                            &paint_sz,
-                                            &pFactory ]() {
+                                    &pRenderTarget, 
+                                    &rectangle, 
+                                    &pBrush, 
+                                    &set_rectangle_location, 
+                                    &fill_rectangle_color,
+                                    &hWnd,
+                                    &rc,
+                                    &paint_sz,
+                                    &pFactory ]() {
 
-                                                    GetClientRect(hWnd, &rc);
-                                                    paint_sz = D2D1::SizeU( rc.right, rc.bottom );
+                                            GetClientRect(hWnd, &rc);
+                                            paint_sz = D2D1::SizeU( rc.right, rc.bottom );
 
-                                                    D2D1CreateFactory(
+                                            D2D1CreateFactory(
 
-                                                        D2D1_FACTORY_TYPE_SINGLE_THREADED, 
-                                                        &pFactory
-                                                    );         
+                                                D2D1_FACTORY_TYPE_SINGLE_THREADED, 
+                                                &pFactory
+                                            );         
 
-                                                    //pRenderTarget will hold the address
-                                                    pFactory->CreateHwndRenderTarget ( 
+                                            //pRenderTarget will hold the address
+                                            pFactory->CreateHwndRenderTarget ( 
 
-                                                        D2D1::RenderTargetProperties(),  
-                                                        D2D1::HwndRenderTargetProperties(
+                                                D2D1::RenderTargetProperties(),  
+                                                D2D1::HwndRenderTargetProperties(
 
-                                                                                            hWnd, 
-                                                                                            paint_sz
-                                                        ), 
-                                                        &pRenderTarget
-                                                    );
+                                                                                    hWnd, 
+                                                                                    paint_sz
+                                                ), 
+                                                &pRenderTarget
+                                            );
 
-                                                    pRenderTarget->BeginDraw();
-                                                    pRenderTarget->Clear(D2D1::ColorF( D2D1::ColorF::White )); 
+                                            pRenderTarget->BeginDraw();
+                                            pRenderTarget->Clear(D2D1::ColorF( D2D1::ColorF::White )); 
 
-                                                    set_rectangle_location( 
+                                            set_rectangle_location( 
 
-                                                                            0, 
-                                                                            0, 
-                                                                            GetSystemMetrics( SM_CXSCREEN ), 
-                                                                            GetSystemMetrics( SM_CYSCREEN ) 
-                                                    );
+                                                                    0, 
+                                                                    0, 
+                                                                    GetSystemMetrics( SM_CXSCREEN ), 
+                                                                    GetSystemMetrics( SM_CYSCREEN ) 
+                                            );
 
-                                                    fill_rectangle_color( D2D1::ColorF::White );
-                                                    pRenderTarget->FillRectangle( rectangle, pBrush);
-                                                    pRenderTarget->EndDraw();
+                                            fill_rectangle_color( D2D1::ColorF::White );
+                                            pRenderTarget->FillRectangle( rectangle, pBrush);
+                                            pRenderTarget->EndDraw();
      };
 
      std::function<void( 
@@ -467,10 +494,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         DialogBox(
 
-                            hInst, 
-                            MAKEINTRESOURCE(IDD_ABOUTBOX), 
-                            hWnd, 
-                            About
+                                    hInst, 
+                                    MAKEINTRESOURCE(IDD_ABOUTBOX), 
+                                    hWnd, 
+                                    About
                         );
 
                 break;
@@ -518,9 +545,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         case WM_VSCROLL: {
 
             hdc = BeginPaint(hWnd, &ps);
-
             scroll_screen();
-
             //TextOut needs to follow render_walls; otherwise, it gets vanished.
             TextOut(hdc,0, 150, scroll_bar, _tcslen( scroll_bar ) );
 
@@ -536,71 +561,80 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     break;
 
                 //loads maze.pnm
-                case VK_F2:
-
+                case VK_F2:{
                     
                     pStateProperties->F2ed = true;
 
                     SetWindowLongPtr(
-                        hWnd, 
-                        GWLP_USERDATA, 
-                        (LONG_PTR)pStateProperties
+                                        hWnd, 
+                                        GWLP_USERDATA, 
+                                        (LONG_PTR)pStateProperties
                     );
 
-                    GetCurrentDirectory( MAX_BUFF_SIZE, text_buffer );
+                    GetCurrentDirectory( MAX_LOADSTRING, text_buffer );
 
-                    properties_messages_init( MAX_BUFF_SIZE );
+                    properties_messages_init( MAX_LOADSTRING );
 
-                    for ( int i = 0; i< MAX_BUFF_SIZE; ++i  ) 
+                    for ( int i = 0; i< MAX_LOADSTRING; ++i  ) 
                         pStateProperties->F2Mssg [ i ] = text_buffer [i];
 
                     strbuff = "\\maze.pnm";
                     //strbuff += '\0';
                     
-                    for ( int i = 0; i < MAX_BUFF_SIZE; ++i ) {
+                    for ( int i = 0; i < MAX_LOADSTRING; ++i ) {
 
                         if ( pStateProperties->F2Mssg [ i ] != '\0' ) 
                             text_buffer [i] = pStateProperties->F2Mssg [ i ];
                         else 
-                            for ( int j = 0; strbuff[j] != '\0' && i < MAX_BUFF_SIZE; ++j, ++i )
+                            for ( int j = 0; strbuff[j] != '\0' && i < MAX_LOADSTRING; ++j, ++i )
                                 text_buffer [i] = strbuff[j];                           
                     }
                     
                     hFile = CreateFile(
 
-                                        text_buffer,           // file to open
-                                        GENERIC_READ,          // open for reading
-                                        FILE_SHARE_READ,       // share for reading
-                                        NULL,                  // default security
-                                        OPEN_EXISTING,         // existing file only
+                                        text_buffer,                // file to open
+                                        GENERIC_READ,               // open for reading
+                                        FILE_SHARE_READ,            // share for reading
+                                        NULL,                       // default security
+                                        OPEN_EXISTING,              // existing file only
                                         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, // normal file
-                                        NULL                   // no attr. template
+                                        NULL                        // no attr. template
                     );                 
                     
-                    for ( int i = 0; i < MAX_BUFF_SIZE; ++i ) fMaze [i] = '\0';
-
-                    for ( int i = 0; i < MAX_BUFF_SIZE; ++i ) {
+                    for ( int i = 0; i < MAX_LOADSTRING; ++i ) fMaze [i] = '\0';
+                    /*
+                    for ( int i = 0; i < MAX_LOADSTRING; ++i ) {
                     
-                        if ( ReadFileEx(hFile, fMaze, MAX_BUFF_SIZE, &rOverlap, NULL) ) {
-                    
-                            properties_messages_init( MAX_BUFF_SIZE );
-                            for (int i=0; i<MAX_BUFF_SIZE; ++i ) pStateProperties->F2Mssg [ i ] = fMaze [i];                    
-                        }
-                        else
-                            break;
-                            //pStateProperties->F2Mssg = "F2 failed";                    
+                   
                     }
+                    */
+                    if ( 
+                        ReadFileEx(
+                                    hFile, 
+                                    fMaze, 
+                                    MAX_LOADSTRING - 1, 
+                                    &lpOverlapped,
+                                    AsynchIOCompletionRoutine)){
+                    
+                                                            properties_messages_init(MAX_LOADSTRING);
 
-                      
+                                                            for (int i=0; i<MAX_LOADSTRING; ++i) 
+                                                                pStateProperties->F2Mssg[i] = fMaze[i];                    
+                    }
+                    else
+                        break;
+                        //pStateProperties->F2Mssg = "F2 failed"; 
+
                     scroll_screen();
                     clean_field();
 
-                    //SleepEx(INFINITE, TRUE);
+                    SleepEx(INFINITE, TRUE);
                     CloseHandle(hFile);
+                    break;                
+                }
 
-                    break;
                 
-                case VK_F4:
+                case VK_F4: {               
 
                     pStateProperties->cleaned = true;
 
@@ -612,10 +646,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                     scroll_screen();
                     clean_field();
-                    break;
+                    break;                
+                }
+
 
                 //will toggle location
-                case VK_TAB: 
+                case VK_TAB: {
+                
                     
                     //updating StateProperties
                     //TAB's been pressed; setting it to true
@@ -644,7 +681,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                     std::complex<int>(75, 75) 
                     );
 
-                    break;
+                    break;                
+                }
+
             }
 
             break;
@@ -809,9 +848,7 @@ int main(int argc, char** argv )
     
         int random_num = 
             std::chrono::duration<double>
-                ( std::chrono::system_clock::now().
-                    time_since_epoch() ).
-                        count();
+                ( std::chrono::system_clock::now().time_since_epoch() ).count();
 
         if( Common::Maze::maze[ random_num%3 ][ random_num%7 ] == 0 ) 
             return std::complex<int> ( random_num%7, random_num%3 );        
