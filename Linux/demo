@@ -1,0 +1,5 @@
+#!/usr/bin/bash
+
+dir_path=$(dirname $0)
+
+${dir_path}/runner "${dir_path}" "$1" "$2"
