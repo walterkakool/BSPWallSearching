@@ -9,7 +9,7 @@ git clone https://github.com/walterkakool/BSPWallSearching.git \
 cd ./BSPWallSearching/Linux\
 cmake -H. -Btmp_cmake -DCMAKE_INSTALL_PREFIX=WalterKakool\
 cmake --build tmp_cmake --clean-first --target install\
-WalterKakool/bin/demo\
+WalterKakool/bin/demo
 
 # Linux version key specs
 `Esc`-----------exits;\
