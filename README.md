@@ -14,7 +14,7 @@ WalterKakool/bin/demo
 # Linux version key specs
 `Esc`-----------exits;\
 `Tab`-----------switches Method;\
-`Arrow keys`----movements;\
+`Arrow keys`----movements;
 
 # BSPMaze.exe goals
 This is the Windows version. Besides everything in the Linux version, it has\
