@@ -11,7 +11,6 @@ Note: Please runs this under full-screen.
 `cd ./BSPWallSearching/Linux`\
 `chmod u+x compiles demo`\
 `./compiles`\
-`./demo`\
 `./WalterKakool/bin/demo`
 
 # Linux version key specs
