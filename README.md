@@ -5,10 +5,13 @@ When it's dark purple, the current Method is BSP; otherwise, it scans the whole 
 THIS VERSION HAS BEEN DONE.
 
 # How to run the Linux version
+Note: Please runs this under full-screen.
+\
 `git clone https://github.com/walterkakool/BSPWallSearching.git` \
 `cd ./BSPWallSearching/Linux`\
-`cmake -H. -Btmp_cmake -DCMAKE_INSTALL_PREFIX=WalterKakool`\
-`cmake --build tmp_cmake --clean-first --target install`\
+`chmod u+e compiles demo`\
+`./compiles`\
+`./demo`\
 `./WalterKakool/bin/demo`
 
 # Linux version key specs
