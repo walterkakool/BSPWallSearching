@@ -9,7 +9,7 @@ Note: Please runs this under full-screen.
 \
 `git clone https://github.com/walterkakool/BSPWallSearching.git` \
 `cd ./BSPWallSearching/Linux`\
-`chmod u+e compiles demo`\
+`chmod u+x compiles demo`\
 `./compiles`\
 `./demo`\
 `./WalterKakool/bin/demo`
