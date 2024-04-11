@@ -1,0 +1,17 @@
+if [ -z "$1" ]
+then
+
+cmake -H. -Btmp_cmake -DCMAKE_INSTALL_PREFIX=WalterKakool &
+wait $!
+
+cmake --build tmp_cmake --clean-first --target install &
+wait $!
+
+echo Compiling succeeded. Exited with "$?" &
+wait $!
+
+else
+
+echo Please redo without arguments.
+fi
+
