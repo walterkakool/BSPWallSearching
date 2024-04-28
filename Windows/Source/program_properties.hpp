@@ -48,9 +48,13 @@ namespace ProgramProperties{
 			bool	TABed;
 			bool	F2ed;
 			bool	cleaned;
-			string	F2Mssg;
+			bool	path2long;
+
+			string	f2Mssg;  //F2 content
+			string  f2path;
 	};
 
+	static void properties_messages_init (string& inStr, int size);
 }
 
 
