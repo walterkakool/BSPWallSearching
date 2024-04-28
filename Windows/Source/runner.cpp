@@ -48,7 +48,7 @@
 #include "components.hpp"
 #include "program_properties.cpp"
 
-#define MAX_LOADSTRING 100
+#define MAX_LOADSTRING 128
 
 #define _USE_MATH_DEFINES
 //Abandoned personal constant
@@ -90,27 +90,22 @@ HANDLE              hFile;
 OVERLAPPED          lpOverlapped = {0};
 int                 itrCounts = 0;
 
-VOID CALLBACK 
-    AsynchIOCompletionRoutine(
+VOID CALLBACK AsynRoutine(
 
                                 __in  DWORD dwErrorCode,
                                 __in  DWORD dwNumberOfBytesTransfered,
                                 __in  LPOVERLAPPED lpOverlapped
 );
 
-VOID CALLBACK 
-    AsynchIOCompletionRoutine(
+VOID CALLBACK AsynRoutine(
                                 __in  DWORD dwErrorCode,
                                 __in  DWORD dwNumberOfBytesTransfered,
                                 __in  LPOVERLAPPED lpOverlapped ) {
-                                   /*
-                                  _tprintf(TEXT("Error code:\t%x\n"), dwErrorCode);
-                                  _tprintf(TEXT("Number of bytes:\t%x\n"), dwNumberOfBytesTransfered);
 
-                                   = dwNumberOfBytesTransfered;
-                                  */
-                                  ++itrCounts;
-                                  lpOverlapped->Offset += dwNumberOfBytesTransfered;
+    ++itrCounts;
+    lpOverlapped->Offset += dwNumberOfBytesTransfered;
+
+    //lpOverlapped->OffsetHigh += dwNumberOfBytesTransfered
  }
 
 
@@ -119,6 +114,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_ LPWSTR    lpCmdLine,
                      _In_ int       nCmdShow)
 {
+
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
@@ -201,17 +197,19 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    pStateProperties->TABed = false;
    pStateProperties->F2ed = false;
    pStateProperties->cleaned = false;
+   pStateProperties->path2long = false;
 
    //RECT rect;
    HWND hWnd = CreateWindowEx( 
+
                                 0,                      // no extended styles 
                                 szWindowClass,           // scroll bar control class 
                                 szTitle,                // no window text 
                                 WS_OVERLAPPEDWINDOW | WS_HSCROLL | WS_VSCROLL,   // window styles 
-                                SM_CXSCREEN,         // leftmost horizontal position 
-                                SM_CYSCREEN,         // topest vertical position 
-                                GetSystemMetrics( SM_CXSCREEN ),   // maximizing width 
-                                GetSystemMetrics( SM_CYSCREEN ),   // maximizing height 
+                                SM_CXSCREEN - 7,         // leftmost horizontal position 
+                                SM_CYSCREEN - 1,         // topest vertical position 
+                                GetSystemMetrics( SM_CXSCREEN  ) + 14,   // maximizing width 
+                                GetSystemMetrics( SM_CYSCREEN  ) - 33,   // maximizing height 
                                 (HWND) NULL,           // no parent for overlapped windows 
                                 (HMENU) NULL,          // use the window class menu 
                                 hInst,               // global instance handle  
@@ -261,8 +259,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     StateProperties*           pStateProperties = reinterpret_cast<StateProperties*>(ptr);
 
     TCHAR                      scroll_bar[]     = L"Scroll bar called";
-    TCHAR                      text_buffer[ MAX_LOADSTRING ] = { '\0' };
-    string                     strbuff          = "";
+    TCHAR                      tcharBuff[ MAX_LOADSTRING ] = { '\0' };
+    string                     strBuff          = "";
     char                       fMaze[ MAX_LOADSTRING ] = { '\0' };
     
     if ( !(pStateProperties == nullptr) ) {
@@ -273,22 +271,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 pStateProperties->TABed ? true : false;
 
         if ( statesChk ) 
-            strbuff = pStateProperties->F2Mssg;       
+            strBuff = pStateProperties->f2Mssg;       
         else {
         
             SYSTEMTIME local_time_obj;
             GetLocalTime(&local_time_obj);
 
-            strbuff += "----"; 
-            strbuff += to_string( local_time_obj.wHour );
-            strbuff += " : ";
-            strbuff += to_string( local_time_obj.wMinute );
-            strbuff += " : ";
-            strbuff += to_string( local_time_obj.wSecond );
-            strbuff += "---\n";
+            strBuff += "----"; 
+            strBuff += to_string( local_time_obj.wHour );
+            strBuff += " : ";
+            strBuff += to_string( local_time_obj.wMinute );
+            strBuff += " : ";
+            strBuff += to_string( local_time_obj.wSecond );
+            strBuff += "---\n";
 
-            for( int i = 0; i < strbuff.length(); ++i ) 
-                text_buffer[ i ] = strbuff [ i ];            
+            for( int i = 0; i < strBuff.length(); ++i ) 
+                tcharBuff[ i ] = strBuff [ i ];            
         }
     }
 
@@ -297,20 +295,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
       int left, int top, int right, int bottom ) { rectangle = D2D1::RectF( left, top, right, bottom );
     };  
     
-    std::function<void( int )> properties_messages_init = [ &pStateProperties ]( int size ) {
+    std::function<void( int )> initF2 = [ &pStateProperties ]( int size ) {
 
-        pStateProperties->F2Mssg = '\0';  
-        for ( int i = 0; i< size - 1; ++i  )  pStateProperties->F2Mssg += '\0';
+        pStateProperties->f2Mssg = '\0';  
+        pStateProperties->f2path = '\0'; 
+
+        for ( int i = 0; i< size - 1; ++i  ) { 
+        
+            pStateProperties->f2Mssg += '\0';
+            pStateProperties->f2path += '\0';
+        }    
+        
     };
     
-    std::function<void()> load_strbuff = [ &strbuff, &text_buffer ]() {
+    std::function<void()> load_strBuff = [ &strBuff, &tcharBuff ]() {
         
-        for ( int i = 0; i< strbuff.length(); ++i  ) text_buffer [ i ] = strbuff [ i ];
+        for ( int i = 0; i< strBuff.length(); ++i  ) tcharBuff [ i ] = strBuff [ i ];
     };
 
-    std::function<void()> read_maze = [ &fMaze, &text_buffer ]() {
+    std::function<void()> read_maze = [ &fMaze, &tcharBuff ]() {
         
-        for ( int i = 0; i< MAX_LOADSTRING; ++i  ) text_buffer [ i ] = fMaze [ i ];
+        for ( int i = 0; i< MAX_LOADSTRING; ++i  ) tcharBuff [ i ] = fMaze [ i ];
     };
 
     std::function<void( D2D1::ColorF )> fill_rectangle_color = [ &pRenderTarget, &pBrush ]
@@ -318,50 +323,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                pRenderTarget->CreateSolidColorBrush( color,&pBrush );
     };
 
-     std::function<void()> scroll_screen = [ &hWnd ] () {
+     std::function<void()> srllScreen = [ &hWnd ] () {  //scroll screen
 
-                                                            ScrollWindowEx(
+        ScrollWindowEx(
 
-                                                                            hWnd, 
-                                                                            000, 
-                                                                            1000, 
-                                                                            (CONST RECT *) NULL, 
-                                                                            (CONST RECT *) NULL, 
-                                                                            (HRGN) NULL, 
-                                                                            (PRECT) NULL, 
-                                                                            SW_INVALIDATE
-                                                        ); 
+                hWnd, 
+                000, 
+                GetSystemMetrics( SM_CYSCREEN  ) - 35, 
+                (CONST RECT *) NULL, 
+                (CONST RECT *) NULL, 
+                (HRGN) NULL, 
+                (PRECT) NULL, 
+                SW_INVALIDATE
+        ); 
     };    
 
-     std::function<void()>
-         load_maze=[ 
-             
-                    &pRenderTarget, 
-                    &rectangle, 
-                    &pBrush, 
-                    &set_rectangle_location, 
-                    &fill_rectangle_color ]() {
 
-                                                pRenderTarget->BeginDraw();
-                                                pRenderTarget->Clear( 
-
-                                                    D2D1::ColorF( D2D1::ColorF::White ) 
-                                                ); 
-
-                                                set_rectangle_location( 
-
-                                                                        0, 
-                                                                        0, 
-                                                                        GetSystemMetrics( SM_CXSCREEN ), 
-                                                                        GetSystemMetrics( SM_CYSCREEN ) 
-                                                );
-
-                                                fill_rectangle_color( D2D1::ColorF::White );
-                                                pRenderTarget->FillRectangle( rectangle, pBrush);
-                                                pRenderTarget->EndDraw();
-     };
-
-     std::function<void()> clean_field = [ 
+    
+     std::function<void()> clnField = [                             //clean field
              
                                     &pRenderTarget, 
                                     &rectangle, 
@@ -482,6 +461,73 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                     pRenderTarget->EndDraw();
      };
 
+     std::function<void( )> loadMaze=[ &strBuff, 
+                                       &tcharBuff, 
+                                       &pStateProperties,
+                                       &fMaze,
+                                       clnField,
+                                       initF2, 
+                                       srllScreen
+                            ]() {
+
+                    for ( int i = 0; 1; ++i ) {
+
+                        tcharBuff [i] = pStateProperties->f2path [i];
+
+                        if ( !pStateProperties->f2path [i] ) {
+                            
+                            for ( int j = 0; strBuff[j]; ++i, ++j ) {
+                                
+                                if( i < MAX_LOADSTRING ) tcharBuff [i] = strBuff[j];
+                                else {
+                                
+                                    pStateProperties->path2long = true;
+                                    goto openFile;
+                                }
+
+                            }
+
+                            goto openFile;
+                        }
+                    }
+                    
+                    openFile:
+                    
+                        hFile = CreateFile(
+
+                                            tcharBuff,                // file to open
+                                            GENERIC_READ,               // open for reading
+                                            FILE_SHARE_READ,            // share for reading
+                                            NULL,                       // default security
+                                            OPEN_EXISTING,              // existing file only
+                                            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, // normal file
+                                            NULL                        // no attr. template
+                        );            
+
+                    for ( int i = 0; i < MAX_LOADSTRING; ++i ) fMaze [i] = '\0';
+
+                    if ( ReadFileEx( hFile, fMaze, MAX_LOADSTRING - 1, &lpOverlapped, AsynRoutine)){
+                    
+                        initF2(MAX_LOADSTRING);
+                        for (int i=0; i<MAX_LOADSTRING; ++i) pStateProperties->f2Mssg[i] = fMaze[i]; 
+
+                        srllScreen();
+                        clnField();
+
+                        SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
+                        CloseHandle(hFile);         //next open will start at the offset
+                    }
+                    else {                   
+
+                        initF2(MAX_LOADSTRING);
+                        pStateProperties->f2Mssg = "No input file.";
+
+                        srllScreen();
+                        clnField();       
+                    }
+                    
+     };
+
     switch (message) {
 
         case WM_COMMAND: {
@@ -523,29 +569,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         case WM_PAINT: {
             
+            //InvalidateRect( hWnd, NULL, TRUE );
+
             bool states_check = 
                 pStateProperties->F2ed || pStateProperties->started || pStateProperties->TABed ? 
                    true : false;
 
-            hdc = BeginPaint(hWnd, &ps);
-            load_strbuff();
+            hdc = BeginPaint(hWnd, &ps );
+            load_strBuff();
                 
             if ( !( pStateProperties->cleaned ) ) 
-                TextOut(hdc,0, 0, text_buffer, strbuff.length() );
+                TextOut(hdc,0, 0, tcharBuff, strBuff.length() );
             else {
                     
                 pStateProperties->cleaned = false;
                 SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties );  
             }
          
-            EndPaint(hWnd, &ps);   
+            EndPaint(hWnd, &ps );   
+
             break;
         }      
 
         case WM_VSCROLL: {
 
             hdc = BeginPaint(hWnd, &ps);
-            scroll_screen();
+            //scrollScreen();
             //TextOut needs to follow render_walls; otherwise, it gets vanished.
             TextOut(hdc,0, 150, scroll_bar, _tcslen( scroll_bar ) );
 
@@ -566,70 +615,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     pStateProperties->F2ed = true;
 
                     SetWindowLongPtr(
+
                                         hWnd, 
                                         GWLP_USERDATA, 
                                         (LONG_PTR)pStateProperties
                     );
 
-                    GetCurrentDirectory( MAX_LOADSTRING, text_buffer );
-
-                    properties_messages_init( MAX_LOADSTRING );
+                    initF2( MAX_LOADSTRING );
+                    GetCurrentDirectory( MAX_LOADSTRING, tcharBuff );
 
                     for ( int i = 0; i< MAX_LOADSTRING; ++i  ) 
-                        pStateProperties->F2Mssg [ i ] = text_buffer [i];
+                        pStateProperties->f2path [i] = tcharBuff [i];
 
-                    strbuff = "\\maze.pnm";
-                    //strbuff += '\0';
-                    
-                    for ( int i = 0; i < MAX_LOADSTRING; ++i ) {
+                    strBuff = "\\maze.pnm";                  
+                    loadMaze();
 
-                        if ( pStateProperties->F2Mssg [ i ] != '\0' ) 
-                            text_buffer [i] = pStateProperties->F2Mssg [ i ];
-                        else 
-                            for ( int j = 0; strbuff[j] != '\0' && i < MAX_LOADSTRING; ++j, ++i )
-                                text_buffer [i] = strbuff[j];                           
-                    }
-                    
-                    hFile = CreateFile(
-
-                                        text_buffer,                // file to open
-                                        GENERIC_READ,               // open for reading
-                                        FILE_SHARE_READ,            // share for reading
-                                        NULL,                       // default security
-                                        OPEN_EXISTING,              // existing file only
-                                        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, // normal file
-                                        NULL                        // no attr. template
-                    );                 
-                    
-                    for ( int i = 0; i < MAX_LOADSTRING; ++i ) fMaze [i] = '\0';
-                    /*
-                    for ( int i = 0; i < MAX_LOADSTRING; ++i ) {
-                    
-                   
-                    }
-                    */
-                    if ( 
-                        ReadFileEx(
-                                    hFile, 
-                                    fMaze, 
-                                    MAX_LOADSTRING - 1, 
-                                    &lpOverlapped,
-                                    AsynchIOCompletionRoutine)){
-                    
-                                                            properties_messages_init(MAX_LOADSTRING);
-
-                                                            for (int i=0; i<MAX_LOADSTRING; ++i) 
-                                                                pStateProperties->F2Mssg[i] = fMaze[i];                    
-                    }
-                    else
-                        break;
-                        //pStateProperties->F2Mssg = "F2 failed"; 
-
-                    scroll_screen();
-                    clean_field();
-
-                    SleepEx(INFINITE, TRUE);
-                    CloseHandle(hFile);
                     break;                
                 }
 
@@ -644,8 +644,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         (LONG_PTR)pStateProperties
                     );
 
-                    scroll_screen();
-                    clean_field();
+                    srllScreen();
+                    clnField();
                     break;                
                 }
 
@@ -659,7 +659,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     pStateProperties->TABed = true;
                     SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties );
                     
-                    scroll_screen();
+                    srllScreen();
                     
                     GetClientRect(hWnd, &rc);
                     paint_sz = D2D1::SizeU( rc.right, rc.bottom );
