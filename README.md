@@ -24,7 +24,7 @@ the functionality of maze scrolling.
 
 # Implemented functionality of BSPMaze.exe 
 `First runs`--------------prints time;\
-`F2`-----------------------current dir has maze.pnm ? prints the contents : prints current dir;\
+`F2`-----------------------current dir has maze.pnm ? prints the contents : "No input file.";\
 `F4`-----------------------cleans all;\
 `Clicking_vertical_bar`-prints the message;\
 `TAB`----------------------render 4 walls.
