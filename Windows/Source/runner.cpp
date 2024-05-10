@@ -49,6 +49,7 @@
 #include "program_properties.cpp"
 
 #define MAX_LOADSTRING 128
+#define DWORD_MAX      4294967295 
 
 #define _USE_MATH_DEFINES
 //Abandoned personal constant
@@ -71,13 +72,13 @@ std::complex<int> Location::west_wall_point(0, 0);
 
 std::complex<int> Location::point(0, 0);
 
-void run(int a, int b);
-int main(int argc, char** argv );
 
 // Global Variables:
-HINSTANCE hInst;                                // current instance
-WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
-WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+HINSTANCE        hInst;                                // current instance
+WCHAR            szTitle[MAX_LOADSTRING];                  // The title bar text
+WCHAR            szWindowClass[MAX_LOADSTRING];            // the main window class name
+StateProperties* pStateProperties;
+bool             f2ed;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -88,26 +89,60 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 //For F2 (reading file)
 HANDLE              hFile;
 OVERLAPPED          lpOverlapped = {0};
-int                 itrCounts = 0;
+//int                 itrCounts = 0;
 
 VOID CALLBACK AsynRoutine(
+                            __in  DWORD dwErrorCode,
+                            __in  DWORD dwNumberOfBytesTransfered,
+                            __in  LPOVERLAPPED lpOverlapped
+);
 
-                                __in  DWORD dwErrorCode,
-                                __in  DWORD dwNumberOfBytesTransfered,
-                                __in  LPOVERLAPPED lpOverlapped
+VOID CALLBACK refresh(
+                       LPVOID lpArg,               // Data value
+                       DWORD dwTimerLowValue,      // Timer low value
+                       DWORD dwTimerHighValue     // Timer high value
 );
 
 VOID CALLBACK AsynRoutine(
                                 __in  DWORD dwErrorCode,
-                                __in  DWORD dwNumberOfBytesTransfered,
+                                __in  DWORD transferred,
                                 __in  LPOVERLAPPED lpOverlapped ) {
+    
+    if(pStateProperties) {  //Does nothing if it's NULL
+    
+        if(transferred) {
 
-    ++itrCounts;
-    lpOverlapped->Offset += dwNumberOfBytesTransfered;
+            if( lpOverlapped->Offset+transferred < lpOverlapped->Offset ){
+            
+                ++lpOverlapped->OffsetHigh;
+                  lpOverlapped->Offset = lpOverlapped->OffsetHigh
+                                                      ? 
+                                                      transferred + lpOverlapped->Offset
+                                                      :
+                                                      0;
+            }
+            else lpOverlapped->Offset = transferred + lpOverlapped->Offset;
 
-    //lpOverlapped->OffsetHigh += dwNumberOfBytesTransfered
- }
+        }
+        else {
+            
+            pStateProperties->itrCounts = 0;
+            lpOverlapped->OffsetHigh, lpOverlapped->Offset = 0;        //No transferred         
+        } 
+            
 
+    
+    }
+    
+}
+
+VOID CALLBACK refresh(
+                       LPVOID lpArg,               // Data value
+                       DWORD dwTimerLowValue,      // Timer low value
+                       DWORD dwTimerHighValue) {     // Timer high value
+
+    
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -174,9 +209,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
-
-
-
 //
 //   FUNCTION: InitInstance(HINSTANCE, int)
 //
@@ -192,29 +224,32 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    hInst = hInstance; // Store instance handle in our global variable
 
    //initializing program state propoerties
-   StateProperties* pStateProperties = new (std::nothrow) StateProperties;
-   pStateProperties->started = false;
-   pStateProperties->TABed = false;
-   pStateProperties->F2ed = false;
-   pStateProperties->cleaned = false;
-   pStateProperties->path2long = false;
+   
+   Common::Maze::load_maze("");
 
+   pStateProperties = new (std::nothrow) StateProperties;
+   ProgramProperties::initPropertiesStates( *pStateProperties );
+   ProgramProperties::initPropertiesF2( *pStateProperties, MAX_LOADSTRING );
+   ProgramProperties::rstIterator( *pStateProperties ); 
+   ProgramProperties::rstMv( *pStateProperties ); 
+   
    //RECT rect;
+   
    HWND hWnd = CreateWindowEx( 
-
                                 0,                      // no extended styles 
                                 szWindowClass,           // scroll bar control class 
                                 szTitle,                // no window text 
                                 WS_OVERLAPPEDWINDOW | WS_HSCROLL | WS_VSCROLL,   // window styles 
                                 SM_CXSCREEN - 7,         // leftmost horizontal position 
                                 SM_CYSCREEN - 1,         // topest vertical position 
-                                GetSystemMetrics( SM_CXSCREEN  ) + 14,   // maximizing width 
-                                GetSystemMetrics( SM_CYSCREEN  ) - 33,   // maximizing height 
+                                GetSystemMetrics( SM_CXSCREEN  ) + 14,   // full-screen width 
+                                GetSystemMetrics( SM_CYSCREEN  ) - 33,   // full-screen height 
                                 (HWND) NULL,           // no parent for overlapped windows 
                                 (HMENU) NULL,          // use the window class menu 
                                 hInst,               // global instance handle  
                                 nullptr           // program pointer 
    );
+
 
    SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties);
 
@@ -228,7 +263,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
 
    return TRUE;
 }
-
 
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -248,12 +282,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     ID2D1HwndRenderTarget*     pRenderTarget_south = NULL;
     ID2D1SolidColorBrush*      pBrush = NULL;
 
+                               f2ed = false;
+
     PAINTSTRUCT                ps;
     HDC                        hdc;
     HRESULT                    hr = S_OK;
-    RECT                       rc;
+    RECT                       fullRc;
+    RECT                       curRc;
     D2D1_RECT_F                rectangle;
     D2D1_SIZE_U                paint_sz;
+
+    D2D1_RECT_F                full_rectangle = D2D1::RectF( 
+                                                            0, 
+                                                            0, 
+                                                            GetSystemMetrics( SM_CXSCREEN ), 
+                                                            GetSystemMetrics( SM_CYSCREEN ) 
+                                                );
+
+    D2D1_RECT_F                r_rectangle = D2D1::RectF( 100, 100, 250, 250 );
 
     LONG_PTR                   ptr = GetWindowLongPtr(hWnd, GWLP_USERDATA);
     StateProperties*           pStateProperties = reinterpret_cast<StateProperties*>(ptr);
@@ -262,53 +308,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     TCHAR                      tcharBuff[ MAX_LOADSTRING ] = { '\0' };
     string                     strBuff          = "";
     char                       fMaze[ MAX_LOADSTRING ] = { '\0' };
-    
-    if ( !(pStateProperties == nullptr) ) {
 
-        bool statesChk = 
-                pStateProperties->F2ed || 
-                pStateProperties->started || 
-                pStateProperties->TABed ? true : false;
+    curRc.left   = 0;
+    curRc.top    = 0;
+    curRc.right  = 0;
+    curRc.bottom = 0;
 
-        if ( statesChk ) 
-            strBuff = pStateProperties->f2Mssg;       
-        else {
-        
-            SYSTEMTIME local_time_obj;
-            GetLocalTime(&local_time_obj);
 
-            strBuff += "----"; 
-            strBuff += to_string( local_time_obj.wHour );
-            strBuff += " : ";
-            strBuff += to_string( local_time_obj.wMinute );
-            strBuff += " : ";
-            strBuff += to_string( local_time_obj.wSecond );
-            strBuff += "---\n";
+    std::function<void()> endScreen = [&pRenderTarget] () { 
 
-            for( int i = 0; i < strBuff.length(); ++i ) 
-                tcharBuff[ i ] = strBuff [ i ];            
-        }
-    }
-
-    std::function<void( int, int, int, int )> set_rectangle_location = [ &rectangle ] (  
-
-      int left, int top, int right, int bottom ) { rectangle = D2D1::RectF( left, top, right, bottom );
-    };  
-    
-    std::function<void( int )> initF2 = [ &pStateProperties ]( int size ) {
-
-        pStateProperties->f2Mssg = '\0';  
-        pStateProperties->f2path = '\0'; 
-
-        for ( int i = 0; i< size - 1; ++i  ) { 
-        
-            pStateProperties->f2Mssg += '\0';
-            pStateProperties->f2path += '\0';
-        }    
-        
+        if( pRenderTarget ) {
+                
+            pRenderTarget->PopAxisAlignedClip();
+            pRenderTarget->EndDraw();
+        }            
     };
+
+    std::function<void(int,int,int,int)> set_rectangle_location=[&rectangle]( 
+                                                                              int left, 
+                                                                              int top,
+                                                                              int right,
+                                                                              int bottom ) { 
+
+        rectangle = D2D1::RectF( left, top, right, bottom );
+    };  
+   
     
-    std::function<void()> load_strBuff = [ &strBuff, &tcharBuff ]() {
+    std::function<void()> loadTcharBuff = [ &strBuff, &tcharBuff ]() {
         
         for ( int i = 0; i< strBuff.length(); ++i  ) tcharBuff [ i ] = strBuff [ i ];
     };
@@ -318,155 +344,196 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         for ( int i = 0; i< MAX_LOADSTRING; ++i  ) tcharBuff [ i ] = fMaze [ i ];
     };
 
-    std::function<void( D2D1::ColorF )> fill_rectangle_color = [ &pRenderTarget, &pBrush ]
-                                                                        ( D2D1_COLOR_F color) { 
-                                               pRenderTarget->CreateSolidColorBrush( color,&pBrush );
+    std::function<void( D2D1::ColorF )> colorBrush =
+        [ &pRenderTarget, &pBrush ] ( D2D1_COLOR_F color) { 
+
+            pRenderTarget->CreateSolidColorBrush( color,&pBrush );
     };
 
-     std::function<void()> srllScreen = [ &hWnd ] () {  //scroll screen
+    std::function<void()> srllScreen = [ &hWnd ] () {  //scroll screen
 
         ScrollWindowEx(
-
-                hWnd, 
-                000, 
-                GetSystemMetrics( SM_CYSCREEN  ) - 35, 
-                (CONST RECT *) NULL, 
-                (CONST RECT *) NULL, 
-                (HRGN) NULL, 
-                (PRECT) NULL, 
-                SW_INVALIDATE
+                        hWnd, 
+                        000, 
+                        GetSystemMetrics( SM_CYSCREEN  ) - 35, 
+                        (CONST RECT *) NULL, 
+                        (CONST RECT *) NULL, 
+                        (HRGN) NULL, 
+                        (PRECT) NULL, 
+                        SW_INVALIDATE
         ); 
+
     };    
 
 
     
-     std::function<void()> clnField = [                             //clean field
-             
-                                    &pRenderTarget, 
-                                    &rectangle, 
-                                    &pBrush, 
-                                    &set_rectangle_location, 
-                                    &fill_rectangle_color,
-                                    &hWnd,
-                                    &rc,
-                                    &paint_sz,
-                                    &pFactory ]() {
-
-                                            GetClientRect(hWnd, &rc);
-                                            paint_sz = D2D1::SizeU( rc.right, rc.bottom );
+    std::function<void()> clnField=[    //clean field
+                                        &pStateProperties,
+                                        &pRenderTarget, 
+                                        &rectangle, 
+                                        &pBrush, 
+                                        &set_rectangle_location, 
+                                        &colorBrush,
+                                        &hWnd,
+                                        &fullRc,
+                                        &paint_sz,
+                                        &pFactory]() {
+                                            
+                                            GetClientRect(hWnd, &fullRc);
+                                            paint_sz = D2D1::SizeU( fullRc.right, fullRc.bottom );
 
                                             D2D1CreateFactory(
-
-                                                D2D1_FACTORY_TYPE_SINGLE_THREADED, 
-                                                &pFactory
+                                                                D2D1_FACTORY_TYPE_SINGLE_THREADED, 
+                                                                &pFactory
                                             );         
 
                                             //pRenderTarget will hold the address
                                             pFactory->CreateHwndRenderTarget ( 
-
-                                                D2D1::RenderTargetProperties(),  
-                                                D2D1::HwndRenderTargetProperties(
-
-                                                                                    hWnd, 
-                                                                                    paint_sz
-                                                ), 
-                                                &pRenderTarget
+                                                            D2D1::RenderTargetProperties(),  
+                                                            D2D1::HwndRenderTargetProperties(
+                                                                                                hWnd, 
+                                                                                                paint_sz
+                                                            ), 
+                                                            &pRenderTarget
                                             );
 
                                             pRenderTarget->BeginDraw();
                                             pRenderTarget->Clear(D2D1::ColorF( D2D1::ColorF::White )); 
-
-                                            set_rectangle_location( 
-
-                                                                    0, 
-                                                                    0, 
-                                                                    GetSystemMetrics( SM_CXSCREEN ), 
-                                                                    GetSystemMetrics( SM_CYSCREEN ) 
-                                            );
-
-                                            fill_rectangle_color( D2D1::ColorF::White );
-                                            pRenderTarget->FillRectangle( rectangle, pBrush);
                                             pRenderTarget->EndDraw();
-     };
 
-     std::function<void( 
+                                            pFactory->Release();
+                                            pFactory = NULL;
+                                            pRenderTarget->Release();
+                                            pRenderTarget = NULL;
+    };
 
-                    std::complex<int>, 
-                    std::complex<int>, 
-                    std::complex<int>, 
-                    std::complex<int> 
-                   )> render4walls = [ 
-
+    std::function<void( std::complex<int>,std::complex<int>, std::complex<int>,std::complex<int> )> 
+        render4walls = [ 
+                        &pStateProperties,
                         &pRenderTarget, 
                         &rectangle, 
                         &pBrush, 
                         &set_rectangle_location, 
-                        &fill_rectangle_color ] ( 
+                        &colorBrush,
+                        &hWnd,
+                        &fullRc,
+                        &paint_sz,
+                        &pFactory] ( 
+                                    std::complex<int> n, 
+                                    std::complex<int> s, 
+                                    std::complex<int> w, 
+                                    std::complex<int> e ) {         
 
-                            std::complex<int> n, 
-                            std::complex<int> s, 
-                            std::complex<int> w, 
-                            std::complex<int> e ) {         
+        GetClientRect(hWnd, &fullRc);
+        paint_sz = D2D1::SizeU( fullRc.right, fullRc.bottom );
 
-                                    pRenderTarget->BeginDraw();
-                                    pRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
+        D2D1CreateFactory(
+                            D2D1_FACTORY_TYPE_SINGLE_THREADED, 
+                            &pFactory
+        );         
 
-                                    //filling north
-                                    set_rectangle_location( 
+        //pRenderTarget will hold the address
+        pFactory->CreateHwndRenderTarget ( 
+                                            D2D1::RenderTargetProperties(),  
+                                            D2D1::HwndRenderTargetProperties( hWnd, paint_sz), 
+                                            &pRenderTarget
+        );
 
-                                                                n.real(), 
-                                                                n.imag(), 
-                                                                n.real() + 15, 
-                                                                n.imag() + 15 
-                                    );
+        pRenderTarget->BeginDraw();
+        pRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
 
-                                    fill_rectangle_color( D2D1::ColorF( D2D1::ColorF::Red ) );
-                                    pRenderTarget->FillRectangle( rectangle, pBrush);
+        pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation( 
+                                                                    pStateProperties->mvX,
+                                                                    pStateProperties->mvY                   
+                                     )
+        );
 
-                                    //filling south
-                                    set_rectangle_location( 
+        //Filling north
+        set_rectangle_location( 
+                                n.real(), 
+                                n.imag(), 
+                                n.real() + 15, 
+                                n.imag() + 15 
+        );
 
-                                                                s.real(), 
-                                                                s.imag(), 
-                                                                s.real() + 15, 
-                                                                s.imag() + 15 
-                                    );
+        colorBrush( D2D1::ColorF( D2D1::ColorF::Red ) );
+        pRenderTarget->FillRectangle( rectangle, pBrush);
+        
+        pBrush->Release();
+        pBrush = NULL;
+        
+        //Filling south
+        set_rectangle_location( 
+                                s.real(), 
+                                s.imag(), 
+                                s.real() + 15, 
+                                s.imag() + 15 
+        );
 
-                                    fill_rectangle_color( D2D1::ColorF( D2D1::ColorF::Blue ) );
-                                    pRenderTarget->FillRectangle( rectangle, pBrush);
+        colorBrush( D2D1::ColorF( D2D1::ColorF::Blue ) );
+        pRenderTarget->FillRectangle( rectangle, pBrush);
+        
+        pBrush->Release();
+        pBrush = NULL;
+        
+        //Filling west
+        set_rectangle_location( 
+                                w.real(), 
+                                w.imag(), 
+                                w.real() + 15, 
+                                w.imag() + 15
+        );
 
-                                    //filling west
-                                    set_rectangle_location( 
+        colorBrush( D2D1::ColorF( D2D1::ColorF::Brown ) );
+        pRenderTarget->FillRectangle( rectangle, pBrush );
+        
+        pBrush->Release();
+        pBrush = NULL;
+        
+        //Fill east
+        set_rectangle_location( 
+                                e.real(), 
+                                e.imag(), 
+                                e.real() + 15, 
+                                e.imag() + 15 
+        );
 
-                                                                w.real(), 
-                                                                w.imag(), 
-                                                                w.real() + 15, 
-                                                                w.imag() + 15
-                                    );
+        colorBrush( D2D1::ColorF( D2D1::ColorF::Green ) );
+        pRenderTarget->FillRectangle( rectangle, pBrush );
 
-                                    fill_rectangle_color( D2D1::ColorF( D2D1::ColorF::Brown ) );
-                                    pRenderTarget->FillRectangle( rectangle, pBrush );
+        pRenderTarget->EndDraw();
+        
+        pBrush->Release();
+        pBrush = NULL;
+        pFactory->Release();
+        pFactory = NULL;
+        pRenderTarget->Release();
+        pRenderTarget = NULL;
 
-                                    //fill east
-                                    set_rectangle_location( 
+    };
 
-                                                                e.real(), 
-                                                                e.imag(), 
-                                                                e.real() + 15, 
-                                                                e.imag() + 15 
-                                    );
+     std::function<void( )> loadTimeStrBuff=[ &strBuff]() {    
 
-                                    fill_rectangle_color( D2D1::ColorF( D2D1::ColorF::Green ) );
-                                    pRenderTarget->FillRectangle( rectangle, pBrush );
-                                    pRenderTarget->EndDraw();
-     };
+        SYSTEMTIME local_time_obj;
+        GetLocalTime(&local_time_obj);
 
-     std::function<void( )> loadMaze=[ &strBuff, 
+        strBuff += "----"; 
+        strBuff += to_string( local_time_obj.wHour );
+        strBuff += " : ";
+        strBuff += to_string( local_time_obj.wMinute );
+        strBuff += " : ";
+        strBuff += to_string( local_time_obj.wSecond );
+        strBuff += "---\n";
+     }; 
+
+
+     std::function<void( )> loadMaze=[ 
+                                       &hWnd,
+                                       &strBuff, 
                                        &tcharBuff, 
                                        &pStateProperties,
                                        &fMaze,
-                                       clnField,
-                                       initF2, 
+                                       clnField, 
                                        srllScreen
                             ]() {
 
@@ -507,98 +574,124 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     for ( int i = 0; i < MAX_LOADSTRING; ++i ) fMaze [i] = '\0';
 
                     if ( ReadFileEx( hFile, fMaze, MAX_LOADSTRING - 1, &lpOverlapped, AsynRoutine)){
-                    
-                        initF2(MAX_LOADSTRING);
-                        for (int i=0; i<MAX_LOADSTRING; ++i) pStateProperties->f2Mssg[i] = fMaze[i]; 
-
-                        srllScreen();
-                        clnField();
 
                         SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
+
+                        initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
+                        for (int i=0; i<MAX_LOADSTRING; ++i) pStateProperties->f2Mssg[i] = fMaze[i]; 
+
                         CloseHandle(hFile);         //next open will start at the offset
                     }
                     else {                   
 
-                        initF2(MAX_LOADSTRING);
+                        initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
                         pStateProperties->f2Mssg = "No input file.";
 
-                        srllScreen();
-                        clnField();       
+                        InvalidateRect( hWnd, NULL, TRUE );    
                     }
                     
      };
+     
+    if ( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) {
 
+        message = WM_KEYDOWN;
+        wParam  = VK_F2;
+    }
+    
     switch (message) {
 
         case WM_COMMAND: {
 
-                int wmId = LOWORD(wParam);
-                // Parse the menu selections:
+            int wmId = LOWORD(wParam);
+            // Parse the menu selections:
                 switch (wmId) {
 
-                    case IDM_ABOUT:
-
+                    case IDM_ABOUT:{
+                    
                         DialogBox(
-
                                     hInst, 
                                     MAKEINTRESOURCE(IDD_ABOUTBOX), 
                                     hWnd, 
                                     About
                         );
 
-                break;
+                        break;                    
+                    }
 
-                    case IDM_EXIT:
-
-                        DestroyWindow(hWnd);
-                        break;
-
-                default:
-
-                    return DefWindowProc(
-
-                                            hWnd, 
-                                            message, 
-                                            wParam, 
-                                            lParam
-                    );
-                }
-        }
-
-        break;
-
-        case WM_PAINT: {
-            
-            //InvalidateRect( hWnd, NULL, TRUE );
-
-            bool states_check = 
-                pStateProperties->F2ed || pStateProperties->started || pStateProperties->TABed ? 
-                   true : false;
-
-            hdc = BeginPaint(hWnd, &ps );
-            load_strBuff();
-                
-            if ( !( pStateProperties->cleaned ) ) 
-                TextOut(hdc,0, 0, tcharBuff, strBuff.length() );
-            else {
+                    case IDM_EXIT:{
                     
-                pStateProperties->cleaned = false;
-                SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties );  
-            }
-         
-            EndPaint(hWnd, &ps );   
+                        DestroyWindow(hWnd);
+                        delete(pStateProperties);
+                        break;                    
+                    }
+
+                    default:{
+
+                        return DefWindowProc(
+                                                hWnd, 
+                                                message, 
+                                                wParam, 
+                                                lParam
+                        );
+
+                        break;
+                    }
+
+                }
 
             break;
+        }
+
+        case WM_PAINT: {  //For printing context
+
+            if( pStateProperties->started ) goto donePaint;
+
+            pStateProperties->started = true;
+            SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties ); 
+           
+            hdc = BeginPaint(hWnd, &ps );
+
+            
+            render4walls( 
+                            std::complex<int>(50, 50), 
+                            std::complex<int>(50, 100), 
+                            std::complex<int>(25, 75), 
+                            std::complex<int>(75, 75) 
+            );
+
+            loadTimeStrBuff();
+            loadTcharBuff();          
+            TextOut(hdc,0, 0, tcharBuff, strBuff.length() );
+
+            strBuff = std::to_string( pStateProperties->itrCounts );
+            loadTcharBuff();          
+            TextOut(hdc,0, 270 , tcharBuff, strBuff.length() ); 
+
+            strBuff = pStateProperties->f2Mssg;
+            loadTcharBuff();          
+            TextOut(hdc,0, 300 + pStateProperties->itrCounts * 25, tcharBuff, strBuff.length() ); 
+
+            EndPaint(hWnd, &ps );
+            DeleteDC(hdc);
+
+            pStateProperties->started = false;
+
+            donePaint:
+
+                SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties ); 
+                break;
         }      
 
         case WM_VSCROLL: {
 
-            hdc = BeginPaint(hWnd, &ps);
-            //scrollScreen();
-            //TextOut needs to follow render_walls; otherwise, it gets vanished.
-            TextOut(hdc,0, 150, scroll_bar, _tcslen( scroll_bar ) );
+            hdc = BeginPaint(hWnd, &ps );
 
-            EndPaint(hWnd, &ps);
+            pStateProperties->started = true;
+            SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties ); 
+
+            EndPaint(hWnd, &ps );  
+            InvalidateRect( hWnd, NULL, TRUE );
+
             break;
         }
     
@@ -609,10 +702,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 default:
                     break;
 
-                //loads maze.pnm
-                case VK_F2:{
+                case VK_UP:{
                     
-                    pStateProperties->F2ed = true;
+
+                    pStateProperties->mvY -= 10;
 
                     SetWindowLongPtr(
 
@@ -621,7 +714,85 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                         (LONG_PTR)pStateProperties
                     );
 
-                    initF2( MAX_LOADSTRING );
+                    //pStateProperties->started = true;
+
+                    loadTimeStrBuff();
+                    loadTcharBuff();          
+
+                    InvalidateRect( hWnd, NULL, TRUE );
+
+                    break;                
+                }
+
+                case VK_DOWN:{
+                    
+                    pStateProperties->mvY += 10;
+
+                    SetWindowLongPtr(
+
+                                        hWnd, 
+                                        GWLP_USERDATA, 
+                                        (LONG_PTR)pStateProperties
+                    );
+
+                    //pStateProperties->started = true;
+
+                    loadTimeStrBuff();
+                    loadTcharBuff();          
+
+                    InvalidateRect( hWnd, NULL, TRUE );
+
+                    break;                
+                }
+
+                case VK_LEFT:{
+
+                    pStateProperties->mvX -= 10;
+
+                    SetWindowLongPtr(
+
+                                        hWnd, 
+                                        GWLP_USERDATA, 
+                                        (LONG_PTR)pStateProperties
+                    );
+
+                    //pStateProperties->started = true;
+
+                    loadTimeStrBuff();
+                    loadTcharBuff();      
+
+                    InvalidateRect( hWnd, NULL, TRUE );
+                    break;                
+                }
+
+                case VK_RIGHT:{
+
+                    pStateProperties->mvX += 10;
+
+                    SetWindowLongPtr(
+
+                                        hWnd, 
+                                        GWLP_USERDATA, 
+                                        (LONG_PTR)pStateProperties
+                    );
+
+                    //pStateProperties->started = true;
+                    InvalidateRect( hWnd, NULL, TRUE);
+
+                    break;                
+                }
+
+                //loads maze.pnm
+                case VK_F2:{
+                    
+                    ++pStateProperties->itrCounts;
+                    SetWindowLongPtr(
+                                    hWnd, 
+                                    GWLP_USERDATA, 
+                                    (LONG_PTR)pStateProperties
+                    );
+                    
+                    initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
                     GetCurrentDirectory( MAX_LOADSTRING, tcharBuff );
 
                     for ( int i = 0; i< MAX_LOADSTRING; ++i  ) 
@@ -630,51 +801,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     strBuff = "\\maze.pnm";                  
                     loadMaze();
 
+                    InvalidateRect(hWnd, NULL, TRUE);
+
                     break;                
                 }
 
                 
                 case VK_F4: {               
-
+                    
                     pStateProperties->cleaned = true;
 
                     SetWindowLongPtr(
-                        hWnd, 
-                        GWLP_USERDATA, 
-                        (LONG_PTR)pStateProperties
+                                        hWnd, 
+                                        GWLP_USERDATA, 
+                                        (LONG_PTR)pStateProperties
                     );
 
-                    srllScreen();
-                    clnField();
-                    break;                
-                }
 
+                    break;
+                }
 
                 //will toggle location
                 case VK_TAB: {
-                
-                    
+                               
                     //updating StateProperties
                     //TAB's been pressed; setting it to true
                     pStateProperties->TABed = true;
                     SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties );
                     
-                    srllScreen();
+                    //srllScreen();
                     
-                    GetClientRect(hWnd, &rc);
-                    paint_sz = D2D1::SizeU( rc.right, rc.bottom );
+                    GetClientRect(hWnd, &fullRc);
+                    paint_sz = D2D1::SizeU( fullRc.right, fullRc.bottom );
                     D2D1CreateFactory( D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory );         
-
-                    //pRenderTarget will hold the address
-                    pFactory->CreateHwndRenderTarget ( 
-
-                                                        D2D1::RenderTargetProperties(),  
+                    
+                    pFactory->CreateHwndRenderTarget (  //pRenderTarget will hold the address
+                                                        D2D1::RenderTargetProperties( ),  
                                                         D2D1::HwndRenderTargetProperties(hWnd, paint_sz), 
                                                         &pRenderTarget
                     );
 
                     render4walls( 
-
                                     std::complex<int>(50, 50), 
                                     std::complex<int>(50, 100), 
                                     std::complex<int>(25, 75), 
@@ -689,14 +856,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             break;
         }        
 
-        case WM_DESTROY:
+        case WM_DESTROY: {
+        
             PostQuitMessage(0);
-            break;
+            delete(pStateProperties);
+            //InvalidateRect(hWnd, NULL, TRUE);
+            break;        
+        }
 
-        default:
 
-            return DefWindowProc(hWnd, message, wParam, lParam);
-     }
+        default: {
+
+            return DefWindowProc(hWnd, message, wParam, lParam);        
+        }
+
+    }
 
     return 0;
 }
@@ -721,203 +895,3 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-void run(int a, int b){
-    
-    auto                            start = std::chrono::system_clock::now();
-    auto                            end = std::chrono::system_clock::now();
-    string                          time_cost_str = "0";
-    char*                           time_cost_char = &time_cost_str[0];
-    int                             use_BSP = 0; 
-    int                             input = 0;
-    int                             locay = Common::Maze::rows-b; 
-    int                             lasty = locay;
-    int                             locax = a; 
-    int                             lastx = locax;
-
-    Common::Naive*                  naive_obj = new Common::Naive();
-    BSP::Segment*                   current_segment = new BSP::Segment();
-
-    std::pair<bool, BSP::Segment*>  root = current_segment->build_tree(
-
-                                                std::complex<int>( 1, Common::Maze::rows - 2 ), 
-                                                std::complex<int>( Common::Maze::cols-2, 1)
-    );
-
-    BSP::Segment::upddate_parents(root.second);
-
-    BSP::Segment* leaf_node =  BSP::Segment::to_leaf(
-                                                        root.second,
-                                                        std::complex<int>(1, 1)
-    );
-
-    prints:
-
-        Common::Location::reset();
-
-        if(use_BSP){
-
-            start = std::chrono::system_clock::now();
-
-            leaf_node = 
-                BSP::Segment::to_leaf(
-
-                                        root.second, 
-                                        std::complex<int>( locax, Common::Maze::rows-locay )
-            );
-
-            BSP::Segment::update_location_walls(
-
-                                                    leaf_node, 
-                                                    std::complex<int>(
-
-                                                                        locax, 
-                                                                        Common::Maze::rows-locay
-                                                    ), 
-                                                    Common::Maze::rows,
-                                                    Common::Maze::cols
-            );
-
-            end = std::chrono::system_clock::now();
-
-            time_cost_str = 
-                std::to_string(
-
-                    std::chrono::
-                        duration_cast<std::chrono::milliseconds>
-                            (end - start).count()
-            );
-
-            //time_cost_char = &time_cost_str[0];
-
-            /*
-            std::cout<<
-                "BSP time cost: "<< 
-                    time_cost_str<<std::endl;
-            */
-
-        }else{
-        
-            start = std::chrono::system_clock::now();
-
-            Location::point = 
-                std::complex<int> ( 
-
-                    locax, 
-                    Common::Maze::rows - locay 
-                );
-
-            naive_obj->update_walls();
-            end = std::chrono::system_clock::now();
-
-            time_cost_str = 
-                std::to_string(
-                    std::chrono::duration_cast<std::chrono::milliseconds>
-                        (end - start).count()
-            );
-
-            //time_cost_char = &time_cost_str[0];
-            std::cout<<"Naive time cost: "<< time_cost_str<<std::endl;
-        }
-
-        delete current_segment;
-        delete naive_obj;
-        delete root.second;
-}
-
-int main(int argc, char** argv )
-{
-    std::string     valve = "1";
-    int             no_maze = 0;
-    std::string     input_path = "";
-
-    //input_path += argv[1];
-
-    char*           argv_chars = argv[1];
-    std::string     stra = argv_chars;
-    std::string     strb = "a";
-
-    input_path += "./maze.pnm";
-
-    if( !stra.empty() ){
-
-        argv_chars = argv[2];
-        strb = argv_chars;
-    }
-
-    std::function<std::complex<int>()> initial_point = [](){
-    
-        int random_num = 
-            std::chrono::duration<double>
-                ( std::chrono::system_clock::now().time_since_epoch() ).count();
-
-        if( Common::Maze::maze[ random_num%3 ][ random_num%7 ] == 0 ) 
-            return std::complex<int> ( random_num%7, random_num%3 );        
-
-        for(int i=0; i< Common::Maze::rows; ++i) 
-
-            for(int j=0; j< Common::Maze::cols; ++j)
-
-                 if( Common::Maze::maze[i][j] == 0 ) 
-                    
-                     return std::complex<int> (j,i);
-
-        return std::complex<int> (0,0);
-    };
-
-    no_maze = Common::Maze::load_maze( input_path );
-
-    if( no_maze ){  
-
-        std::cout<<"no maze.pnm found"<<std::endl;
-        return 0;   
-    }
-    
-    try{      
-
-        int a = stoi(stra);
-        int b = stoi(strb);
-
-        if(a<1||a>Common::Maze::cols-2 || b<1 || b>Common::Maze::cols-2) 
-            goto initial;
-
-        if(Common::Maze::maze[b][a]==0) run(a,b);
-
-        else{
-        
-            initial:
-
-                std::complex<int> point = initial_point();
-
-                if(point.real() == 0 && point.imag() ==0 ){
-            
-                    std::cout<<
-                        "the input maze is bad cuz no standable point; exiting..."<< std::endl;
-
-                    return 1;
-                }
-                else{
-            
-                    run( point.real(), point.imag() );
-                }               
-        }
-        
-    }
-    catch(exception& e) {
-    
-        std::complex<int> point = initial_point();
-
-        if(point.real() == 0 && point.imag() ==0 ){
-            
-            std::cout<<
-                "the input maze is bad cuz no standable point; exiting..."<< std::endl;
-
-            return 1;
-        }
-        else{
-            
-            run( point.real(), point.imag() );
-        }              
-    }    
-
-    return 0;
-}
