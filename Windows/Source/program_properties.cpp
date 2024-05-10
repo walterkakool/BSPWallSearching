@@ -43,5 +43,40 @@ using namespace ProgramProperties;
 
 namespace ProgramProperties {
 
+    //initialize states 
+    static void initPropertiesStates ( StateProperties& pStateProperties ) { 
+        
+        pStateProperties.cleaned   = false;
+        pStateProperties.f2ed      = false;
+        pStateProperties.f2End     = false;
+        pStateProperties.path2long = false;
+        pStateProperties.started   = false;
+        pStateProperties.TABed     = false;
+        pStateProperties.closeIt   = false;
+    }
 
+    //intialize string content
+    static void initPropertiesF2 ( StateProperties& pStateProperties, int size ) {  
+
+        pStateProperties.f2Mssg = '\0';  
+        pStateProperties.f2path = '\0'; 
+
+        for ( int i = 0; i< size - 1; ++i  ) { 
+        
+            pStateProperties.f2Mssg += '\0';
+            pStateProperties.f2path += '\0';
+        }    
+
+    };
+
+    static void rstIterator ( StateProperties& pStateProperties ) { 
+
+        pStateProperties.itrCounts = 0;
+    }
+
+    static void rstMv ( StateProperties& pStateProperties ) { 
+
+        pStateProperties.mvX = 0;
+        pStateProperties.mvY = 0;
+    }
 }
