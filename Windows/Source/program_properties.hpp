@@ -1,5 +1,10 @@
 #ifndef program_properties_hpp
 #define program_properties_hpp
+
+#include "pch.h"
+#include "framework.h"
+#include "bsp_maze.h"
+
 #include <iostream>
 #include <queue>
 #include <stdio.h>
@@ -34,6 +39,9 @@
 #include <mutex>  
 #include <cstdlib>
 #include <fstream>
+#include <d2d1.h>
+
+#pragma comment(lib, "d2d1")
 
 using namespace std;
 //using namespace ProgramProperties;
@@ -46,15 +54,25 @@ namespace ProgramProperties{
 
 			bool    started;
 			bool	TABed;
-			bool	F2ed;
+			bool	f2ed;
+			bool	f2End;
 			bool	cleaned;
 			bool	path2long;
+			bool	closeIt;
 
 			string	f2Mssg;  //F2 content
 			string  f2path;
+
+			int		mvX;  //x-axis movement
+			int		mvY;  //y-axis movement
+
+			unsigned int itrCounts;
 	};
 
-	static void properties_messages_init (string& inStr, int size);
+	static void initPropertiesStates ( StateProperties& pStateProperties );
+	static void initPropertiesF2 ( StateProperties& pStateProperties, int size );
+	static void rstIterator ( StateProperties& pStateProperties);
+	static void rstMv ( StateProperties& pStateProperties);
 }
 
 
