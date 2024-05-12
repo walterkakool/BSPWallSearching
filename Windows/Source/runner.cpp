@@ -232,6 +232,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    ProgramProperties::initPropertiesF2( *pStateProperties, MAX_LOADSTRING );
    ProgramProperties::rstIterator( *pStateProperties ); 
    ProgramProperties::rstMv( *pStateProperties ); 
+   ProgramProperties::rstTxt( *pStateProperties ); 
    
    //RECT rect;
    
@@ -315,13 +316,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     curRc.bottom = 0;
 
 
-    std::function<void()> endScreen = [&pRenderTarget] () { 
+    std::function<void()> rfScreen = [&hWnd, &curRc, &pStateProperties] () { 
 
-        if( pRenderTarget ) {
-                
-            pRenderTarget->PopAxisAlignedClip();
-            pRenderTarget->EndDraw();
-        }            
+        curRc.left    = pStateProperties->txtL;
+        curRc.top     = pStateProperties->txtTop + pStateProperties->itrCounts *24;
+        curRc.right   = pStateProperties->txtR;
+        curRc.bottom  = pStateProperties->txtBottom + pStateProperties->itrCounts *24;
+
+        InvalidateRect( hWnd, &curRc, TRUE);
     };
 
     std::function<void(int,int,int,int)> set_rectangle_location=[&rectangle]( 
@@ -351,11 +353,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     };
 
     std::function<void()> srllScreen = [ &hWnd ] () {  //scroll screen
-
+        /*
         ScrollWindowEx(
                         hWnd, 
                         000, 
                         GetSystemMetrics( SM_CYSCREEN  ) - 35, 
+                        (CONST RECT *) NULL, 
+                        (CONST RECT *) NULL, 
+                        (HRGN) NULL, 
+                        (PRECT) NULL, 
+                        SW_INVALIDATE
+        ); 
+        */
+        ScrollWindowEx(
+                        hWnd, 
+                        000, 
+                        35, 
                         (CONST RECT *) NULL, 
                         (CONST RECT *) NULL, 
                         (HRGN) NULL, 
@@ -585,18 +598,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     else {                   
 
                         initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
-                        pStateProperties->f2Mssg = "No input file.";
-
-                        InvalidateRect( hWnd, NULL, TRUE );    
+                        CloseHandle(hFile);    
                     }
                     
      };
      
-    if ( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) {
 
-        message = WM_KEYDOWN;
-        wParam  = VK_F2;
-    }
     
     switch (message) {
 
@@ -647,29 +654,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             if( pStateProperties->started ) goto donePaint;
 
             pStateProperties->started = true;
-            SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties ); 
            
             hdc = BeginPaint(hWnd, &ps );
-
-            
+            /*
             render4walls( 
                             std::complex<int>(50, 50), 
                             std::complex<int>(50, 100), 
                             std::complex<int>(25, 75), 
                             std::complex<int>(75, 75) 
             );
-
+            */
             loadTimeStrBuff();
             loadTcharBuff();          
             TextOut(hdc,0, 0, tcharBuff, strBuff.length() );
-
+            /*
             strBuff = std::to_string( pStateProperties->itrCounts );
             loadTcharBuff();          
             TextOut(hdc,0, 270 , tcharBuff, strBuff.length() ); 
+            */
 
             strBuff = pStateProperties->f2Mssg;
-            loadTcharBuff();          
-            TextOut(hdc,0, 300 + pStateProperties->itrCounts * 25, tcharBuff, strBuff.length() ); 
+            loadTcharBuff();    
+
+            TextOut(
+                    hdc,
+                    pStateProperties->txtL, 
+                    pStateProperties->txtTop + pStateProperties->itrCounts * 24,
+                    tcharBuff, 
+                    strBuff.length()
+            );             
+
 
             EndPaint(hWnd, &ps );
             DeleteDC(hdc);
@@ -678,19 +692,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             donePaint:
 
-                SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties ); 
+                if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) goto loadF2;
                 break;
         }      
 
         case WM_VSCROLL: {
 
-            hdc = BeginPaint(hWnd, &ps );
-
-            pStateProperties->started = true;
-            SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties ); 
-
-            EndPaint(hWnd, &ps );  
-            InvalidateRect( hWnd, NULL, TRUE );
+            srllScreen();
 
             break;
         }
@@ -707,12 +715,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                     pStateProperties->mvY -= 10;
 
-                    SetWindowLongPtr(
-
-                                        hWnd, 
-                                        GWLP_USERDATA, 
-                                        (LONG_PTR)pStateProperties
-                    );
 
                     //pStateProperties->started = true;
 
@@ -728,12 +730,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     
                     pStateProperties->mvY += 10;
 
-                    SetWindowLongPtr(
-
-                                        hWnd, 
-                                        GWLP_USERDATA, 
-                                        (LONG_PTR)pStateProperties
-                    );
 
                     //pStateProperties->started = true;
 
@@ -749,12 +745,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                     pStateProperties->mvX -= 10;
 
-                    SetWindowLongPtr(
-
-                                        hWnd, 
-                                        GWLP_USERDATA, 
-                                        (LONG_PTR)pStateProperties
-                    );
 
                     //pStateProperties->started = true;
 
@@ -769,12 +759,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                     pStateProperties->mvX += 10;
 
-                    SetWindowLongPtr(
 
-                                        hWnd, 
-                                        GWLP_USERDATA, 
-                                        (LONG_PTR)pStateProperties
-                    );
 
                     //pStateProperties->started = true;
                     InvalidateRect( hWnd, NULL, TRUE);
@@ -784,26 +769,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 //loads maze.pnm
                 case VK_F2:{
+                
+                    loadF2:
+
+                        if(pStateProperties->started) goto doneF2;
+
+                        pStateProperties->started = true;
+
                     
-                    ++pStateProperties->itrCounts;
-                    SetWindowLongPtr(
-                                    hWnd, 
-                                    GWLP_USERDATA, 
-                                    (LONG_PTR)pStateProperties
-                    );
-                    
-                    initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
-                    GetCurrentDirectory( MAX_LOADSTRING, tcharBuff );
+                        initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
+                        GetCurrentDirectory( MAX_LOADSTRING, tcharBuff );
 
-                    for ( int i = 0; i< MAX_LOADSTRING; ++i  ) 
-                        pStateProperties->f2path [i] = tcharBuff [i];
+                        for ( int i = 0; i< MAX_LOADSTRING; ++i  ) 
+                            pStateProperties->f2path [i] = tcharBuff [i];
 
-                    strBuff = "\\maze.pnm";                  
-                    loadMaze();
+                        strBuff = "\\maze.pnm";                  
+                        loadMaze();
+                        pStateProperties->started = false;
 
-                    InvalidateRect(hWnd, NULL, TRUE);
+                        ++pStateProperties->itrCounts;   
+                        rfScreen();
 
-                    break;                
+                    doneF2:
+                        break;                
                 }
 
                 
@@ -860,7 +848,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         
             PostQuitMessage(0);
             delete(pStateProperties);
-            //InvalidateRect(hWnd, NULL, TRUE);
+
             break;        
         }
 
@@ -894,4 +882,3 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
-
