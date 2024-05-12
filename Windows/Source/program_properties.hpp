@@ -63,6 +63,11 @@ namespace ProgramProperties{
 			string	f2Mssg;  //F2 content
 			string  f2path;
 
+			int     txtL;
+			int	    txtTop;
+			int     txtR;
+			int     txtBottom;
+
 			int		mvX;  //x-axis movement
 			int		mvY;  //y-axis movement
 
@@ -73,6 +78,7 @@ namespace ProgramProperties{
 	static void initPropertiesF2 ( StateProperties& pStateProperties, int size );
 	static void rstIterator ( StateProperties& pStateProperties);
 	static void rstMv ( StateProperties& pStateProperties);
+	static void rstTxt ( StateProperties& pStateProperties);
 }
 
 
