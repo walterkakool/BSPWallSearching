@@ -121,17 +121,19 @@ VOID CALLBACK AsynRoutine(
                                                       :
                                                       0;
             }
-            else lpOverlapped->Offset = transferred + lpOverlapped->Offset;
+            else lpOverlapped->Offset += transferred;
 
         }
         else {
-            
-            pStateProperties->itrCounts = 0;
-            lpOverlapped->OffsetHigh, lpOverlapped->Offset = 0;        //No transferred         
-        } 
-            
+        
+            pStateProperties->itrCounts,
+            lpOverlapped->OffsetHigh, 
+            lpOverlapped->Offset            = 0;        //No transferred 
 
-    
+            rstIterator(*pStateProperties);
+        }
+                 
+
     }
     
 }
@@ -319,9 +321,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     std::function<void()> rfScreen = [&hWnd, &curRc, &pStateProperties] () { 
 
         curRc.left    = pStateProperties->txtL;
-        curRc.top     = pStateProperties->txtTop + pStateProperties->itrCounts *24;
+        curRc.top     = pStateProperties->txtTop;
         curRc.right   = pStateProperties->txtR;
-        curRc.bottom  = pStateProperties->txtBottom + pStateProperties->itrCounts *24;
+        curRc.bottom  = pStateProperties->txtBottom;
 
         InvalidateRect( hWnd, &curRc, TRUE);
     };
@@ -368,7 +370,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         ScrollWindowEx(
                         hWnd, 
                         000, 
-                        35, 
+                        -35, 
                         (CONST RECT *) NULL, 
                         (CONST RECT *) NULL, 
                         (HRGN) NULL, 
@@ -651,27 +653,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         case WM_PAINT: {  //For printing context
 
+
+            //InvalidateRect(hWnd,NULL,TRUE);
             if( pStateProperties->started ) goto donePaint;
 
             pStateProperties->started = true;
            
             hdc = BeginPaint(hWnd, &ps );
-            /*
+            
             render4walls( 
                             std::complex<int>(50, 50), 
                             std::complex<int>(50, 100), 
                             std::complex<int>(25, 75), 
                             std::complex<int>(75, 75) 
             );
-            */
+            
             loadTimeStrBuff();
             loadTcharBuff();          
-            TextOut(hdc,0, 0, tcharBuff, strBuff.length() );
-            /*
+            TextOut(hdc,0, 50, tcharBuff, strBuff.length() );
+            
             strBuff = std::to_string( pStateProperties->itrCounts );
             loadTcharBuff();          
             TextOut(hdc,0, 270 , tcharBuff, strBuff.length() ); 
-            */
+            
 
             strBuff = pStateProperties->f2Mssg;
             loadTcharBuff();    
@@ -679,7 +683,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             TextOut(
                     hdc,
                     pStateProperties->txtL, 
-                    pStateProperties->txtTop + pStateProperties->itrCounts * 24,
+                    pStateProperties->txtTop,
                     tcharBuff, 
                     strBuff.length()
             );             
@@ -711,60 +715,74 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     break;
 
                 case VK_UP:{
+
+                    if(pStateProperties->started) goto doneUp;
+
+                        pStateProperties->started = true;
+                        pStateProperties->mvY -= 10;
                     
+                        //pStateProperties->started = true;
 
-                    pStateProperties->mvY -= 10;
+                        loadTimeStrBuff();
+                        loadTcharBuff();          
 
+                        pStateProperties->started = false;
+                        InvalidateRect( hWnd, NULL, TRUE );
 
-                    //pStateProperties->started = true;
-
-                    loadTimeStrBuff();
-                    loadTcharBuff();          
-
-                    InvalidateRect( hWnd, NULL, TRUE );
-
-                    break;                
+                    doneUp:
+                        break;                
                 }
 
                 case VK_DOWN:{
-                    
-                    pStateProperties->mvY += 10;
 
+                    if(pStateProperties->started) goto doneDown;
 
-                    //pStateProperties->started = true;
+                        pStateProperties->started = true;
+                        pStateProperties->mvY += 10;
 
-                    loadTimeStrBuff();
-                    loadTcharBuff();          
+                        loadTimeStrBuff();
+                        loadTcharBuff();          
 
-                    InvalidateRect( hWnd, NULL, TRUE );
+                        pStateProperties->started = false;
+                        InvalidateRect( hWnd, NULL, TRUE );
 
-                    break;                
+                    doneDown:
+                        break;
+
                 }
 
                 case VK_LEFT:{
 
-                    pStateProperties->mvX -= 10;
+                    if(pStateProperties->started) goto doneLeft;
 
+                        pStateProperties->started = true;
+                        pStateProperties->mvX -= 10;
 
-                    //pStateProperties->started = true;
+                        loadTimeStrBuff();
+                        loadTcharBuff();      
 
-                    loadTimeStrBuff();
-                    loadTcharBuff();      
+                        pStateProperties->started = false;
+                        InvalidateRect( hWnd, NULL, TRUE );
 
-                    InvalidateRect( hWnd, NULL, TRUE );
-                    break;                
+                    doneLeft:
+                        break;                
                 }
 
                 case VK_RIGHT:{
 
-                    pStateProperties->mvX += 10;
+                    if(pStateProperties->started) goto doneRight;
 
+                        pStateProperties->started = true;
+                        pStateProperties->mvX += 10;
 
+                        loadTimeStrBuff();
+                        loadTcharBuff();      
 
-                    //pStateProperties->started = true;
-                    InvalidateRect( hWnd, NULL, TRUE);
+                        pStateProperties->started = false;
+                        InvalidateRect( hWnd, NULL, TRUE );
 
-                    break;                
+                    doneRight:
+                        break;                
                 }
 
                 //loads maze.pnm
@@ -786,10 +804,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         strBuff = "\\maze.pnm";                  
                         loadMaze();
                         pStateProperties->started = false;
-
+                        
                         ++pStateProperties->itrCounts;   
+                        rstTxt(*pStateProperties);
                         rfScreen();
-
+                        
                     doneF2:
                         break;                
                 }
