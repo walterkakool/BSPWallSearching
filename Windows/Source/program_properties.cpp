@@ -71,7 +71,7 @@ namespace ProgramProperties {
 
     static void rstIterator ( StateProperties& pStateProperties ) { 
 
-        pStateProperties.itrCounts = 1;
+        pStateProperties.itrCounts = 0;
     }
 
     static void rstMv ( StateProperties& pStateProperties ) { 
@@ -83,9 +83,17 @@ namespace ProgramProperties {
     static void rstTxt ( StateProperties& pStateProperties ) { 
         
         pStateProperties.txtL      = 0;
-        pStateProperties.txtTop    = 50;
-        pStateProperties.txtR      = 1500;
-        pStateProperties.txtBottom = 74;
+        pStateProperties.txtTop    = 0;
+        pStateProperties.txtR      = 1;
+        pStateProperties.txtBottom = 1; 
+
+        
+        /*
+        pStateProperties.txtL      = 0;
+        pStateProperties.txtTop    = 0;
+        pStateProperties.txtR      = 0;
+        pStateProperties.txtBottom = 0;       
+        */
         
     }
 }
