@@ -53,7 +53,7 @@ namespace ProgramProperties{
 		public:
 
 			bool    started;
-			bool	TABed;
+			bool	isRender;
 			bool	f2ed;
 			bool	f2End;
 			bool	cleaned;
