@@ -51,7 +51,7 @@ namespace ProgramProperties {
         pStateProperties.f2End     = false;
         pStateProperties.path2long = false;
         pStateProperties.started   = false;
-        pStateProperties.TABed     = false;
+        pStateProperties.isRender  = false;
         pStateProperties.closeIt   = false;
     }
 
@@ -87,13 +87,5 @@ namespace ProgramProperties {
         pStateProperties.txtR      = 1;
         pStateProperties.txtBottom = 1; 
 
-        
-        /*
-        pStateProperties.txtL      = 0;
-        pStateProperties.txtTop    = 0;
-        pStateProperties.txtR      = 0;
-        pStateProperties.txtBottom = 0;       
-        */
-        
     }
 }
