@@ -88,8 +88,9 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 //For F2 (reading file)
 HANDLE              hFile;
-OVERLAPPED          lpOverlapped = {0};
-//int                 itrCounts = 0;
+OVERLAPPED          lpOverlapped;
+RECT                rc;
+ID2D1Bitmap*        pMaze;     
 
 VOID CALLBACK AsynRoutine(
                             __in  DWORD dwErrorCode,
@@ -223,21 +224,19 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
 
-   hInst = hInstance; // Store instance handle in our global variable
-
-   //initializing program state propoerties
+   hInst            = hInstance; // Store instance handle in our global variable
+   lpOverlapped     = {0};
    
    Common::Maze::load_maze("");
 
+   pMaze            = NULL;
    pStateProperties = new (std::nothrow) StateProperties;
    ProgramProperties::initPropertiesStates( *pStateProperties );
    ProgramProperties::initPropertiesF2( *pStateProperties, MAX_LOADSTRING );
    ProgramProperties::rstIterator( *pStateProperties ); 
    ProgramProperties::rstMv( *pStateProperties ); 
    ProgramProperties::rstTxt( *pStateProperties ); 
-   
-   //RECT rect;
-   
+
    HWND hWnd = CreateWindowEx( 
                                 0,                      // no extended styles 
                                 szWindowClass,           // scroll bar control class 
@@ -285,8 +284,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     ID2D1HwndRenderTarget*     pRenderTarget_south = NULL;
     ID2D1SolidColorBrush*      pBrush = NULL;
 
-                               f2ed = false;
-
     PAINTSTRUCT                ps;
     HDC                        hdc;
     HRESULT                    hr = S_OK;
@@ -326,6 +323,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         curRc.bottom  = pStateProperties->txtBottom;
 
         InvalidateRect( hWnd, &curRc, TRUE);
+        UpdateWindow( hWnd );
     };
 
     std::function<void(int,int,int,int)> set_rectangle_location=[&rectangle]( 
@@ -439,21 +437,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                     std::complex<int> w, 
                                     std::complex<int> e ) {         
 
-        GetClientRect(hWnd, &fullRc);
-        paint_sz = D2D1::SizeU( fullRc.right, fullRc.bottom );
-
-        D2D1CreateFactory(
-                            D2D1_FACTORY_TYPE_SINGLE_THREADED, 
-                            &pFactory
-        );         
-
-        //pRenderTarget will hold the address
-        pFactory->CreateHwndRenderTarget ( 
-                                            D2D1::RenderTargetProperties(),  
-                                            D2D1::HwndRenderTargetProperties( hWnd, paint_sz), 
-                                            &pRenderTarget
-        );
-
         pRenderTarget->BeginDraw();
         pRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
 
@@ -520,10 +503,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         
         pBrush->Release();
         pBrush = NULL;
-        pFactory->Release();
-        pFactory = NULL;
-        pRenderTarget->Release();
-        pRenderTarget = NULL;
 
     };
 
@@ -631,6 +610,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     
                         DestroyWindow(hWnd);
                         delete(pStateProperties);
+
                         break;                    
                     }
 
@@ -653,8 +633,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         case WM_PAINT: {  //For printing context
 
+            D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED , &pFactory);
 
-            //InvalidateRect(hWnd,NULL,TRUE);
+            GetClientRect(hWnd, &rc);
+            pFactory->CreateHwndRenderTarget(
+                    D2D1::RenderTargetProperties(),  
+                    D2D1::HwndRenderTargetProperties(
+                                                        hWnd, 
+                                                        D2D1::SizeU(rc.right, rc.bottom)
+                    ), 
+                    &pRenderTarget
+            );
+
             if( pStateProperties->started ) goto donePaint;
 
             pStateProperties->started = true;
@@ -696,7 +686,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             donePaint:
 
+                pFactory->Release();
+                pFactory = NULL;
+                pRenderTarget->Release();
+                pRenderTarget = NULL;
+
                 if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) goto loadF2;
+                
                 break;
         }      
 
@@ -728,6 +724,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         pStateProperties->started = false;
                         InvalidateRect( hWnd, NULL, TRUE );
+                        UpdateWindow( hWnd );
 
                     doneUp:
                         break;                
@@ -745,6 +742,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         pStateProperties->started = false;
                         InvalidateRect( hWnd, NULL, TRUE );
+                        UpdateWindow( hWnd );
 
                     doneDown:
                         break;
@@ -763,6 +761,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         pStateProperties->started = false;
                         InvalidateRect( hWnd, NULL, TRUE );
+                        UpdateWindow( hWnd );
 
                     doneLeft:
                         break;                
@@ -780,6 +779,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         pStateProperties->started = false;
                         InvalidateRect( hWnd, NULL, TRUE );
+                        UpdateWindow( hWnd );
 
                     doneRight:
                         break;                
@@ -801,12 +801,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         for ( int i = 0; i< MAX_LOADSTRING; ++i  ) 
                             pStateProperties->f2path [i] = tcharBuff [i];
 
-                        strBuff = "\\maze.pnm";                  
-                        loadMaze();
-                        pStateProperties->started = false;
-                        
+                        strBuff = "\\maze.pnm";   
                         ++pStateProperties->itrCounts;   
+                        loadMaze();
                         rstTxt(*pStateProperties);
+                        pStateProperties->started = false;
+
                         rfScreen();
                         
                     doneF2:
@@ -818,11 +818,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     
                     pStateProperties->cleaned = true;
 
-                    SetWindowLongPtr(
-                                        hWnd, 
-                                        GWLP_USERDATA, 
-                                        (LONG_PTR)pStateProperties
-                    );
 
 
                     break;
@@ -833,11 +828,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                
                     //updating StateProperties
                     //TAB's been pressed; setting it to true
-                    pStateProperties->TABed = true;
-                    SetWindowLongPtr( hWnd, GWLP_USERDATA, (LONG_PTR)pStateProperties );
-                    
-                    //srllScreen();
-                    
+                    pStateProperties->isRender = true;
+
                     GetClientRect(hWnd, &fullRc);
                     paint_sz = D2D1::SizeU( fullRc.right, fullRc.bottom );
                     D2D1CreateFactory( D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory );         
