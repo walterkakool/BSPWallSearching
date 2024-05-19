@@ -1,3 +1,6 @@
+#ifndef program_properties_hpp
+#define program_properties_hpp
+
 #include "pch.h"
 #include "framework.h"
 #include "bsp_maze.h"
@@ -36,56 +39,48 @@
 #include <mutex>  
 #include <cstdlib>
 #include <fstream>
+#include <d2d1.h>
 
-#include "program_properties.hpp";
+#pragma comment(lib, "d2d1")
 
-using namespace ProgramProperties;
+using namespace std;
+//using namespace ProgramProperties;
 
-namespace ProgramProperties {
+namespace ProgramProperties{
 
-    //initialize states 
-    static void initPropertiesStates ( StateProperties& pStateProperties ) { 
-        
-        pStateProperties.cleaned   = false;
-        pStateProperties.isF4      = false;
-        pStateProperties.f2End     = false;
-        pStateProperties.path2long = false;
-        pStateProperties.started   = false;
-        pStateProperties.isRender  = false;
-        pStateProperties.closeIt   = false;
-    }
+	struct StateProperties {
 
-    //intialize string content
-    static void initPropertiesF2 ( StateProperties& pStateProperties, int size ) {  
+		public:
 
-        pStateProperties.f2Mssg = '\0';  
-        pStateProperties.f2path = '\0'; 
+			bool    started;
+			bool	isRender;
+			bool	isF4;
+			bool	f2End;
+			bool	cleaned;
+			bool	path2long;
+			bool	closeIt;
 
-        for ( int i = 0; i< size - 1; ++i  ) { 
-        
-            pStateProperties.f2Mssg += '\0';
-            pStateProperties.f2path += '\0';
-        }    
+			string	f2Mssg;  //F2 content
+			string  f2path;
 
-    };
+			int     txtL;
+			int	    txtTop;
+			int     txtR;
+			int     txtBottom;
 
-    static void rstIterator ( StateProperties& pStateProperties ) { 
+			int		mvX;  //x-axis movement
+			int		mvY;  //y-axis movement
 
-        pStateProperties.itrCounts = 0;
-    }
+			unsigned int itrCounts;
+	};
 
-    static void rstMv ( StateProperties& pStateProperties ) { 
-
-        pStateProperties.mvX = 0;
-        pStateProperties.mvY = 0;
-    }
-
-    static void rstTxt ( StateProperties& pStateProperties ) { 
-        
-        pStateProperties.txtL      = 0;
-        pStateProperties.txtTop    = 0;
-        pStateProperties.txtR      = 1;
-        pStateProperties.txtBottom = 1; 
-
-    }
+	static void initPropertiesStates ( StateProperties& pStateProperties );
+	static void initPropertiesF2 ( StateProperties& pStateProperties, int size );
+	static void rstIterator ( StateProperties& pStateProperties);
+	static void rstMv ( StateProperties& pStateProperties);
+	static void rstTxt ( StateProperties& pStateProperties);
 }
+
+
+
+#endif
