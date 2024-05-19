@@ -79,7 +79,6 @@ WCHAR            szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR            szWindowClass[MAX_LOADSTRING];            // the main window class name
 StateProperties* pStateProperties;
 HANDLE           hDIB;
-//D2D1_RECT_U      fullSrn;
 char*            lpBmp;
 BITMAPINFOHEADER bi;
 DWORD            dwBmpSize;
@@ -96,7 +95,6 @@ HANDLE              hFile;
 OVERLAPPED          lpOverlapped;
 RECT                rc;
   
-
 VOID CALLBACK AsynRoutine(
                             __in  DWORD dwErrorCode,
                             __in  DWORD dwNumberOfBytesTransfered,
@@ -234,7 +232,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    dwBmpSize        = 0;
    hDIB             = NULL;
    lpBmp            = NULL;
-   
+   hFile            = NULL;
+
+
    Common::Maze::load_maze("");
 
    pStateProperties = new (std::nothrow) StateProperties;
@@ -346,7 +346,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         curRc.right   = pStateProperties->txtR;
         curRc.bottom  = pStateProperties->txtBottom;
 
-        InvalidateRect( hWnd, &curRc, TRUE);
+        //InvalidateRect( hWnd, &curRc, TRUE);
+        InvalidateRect( hWnd, NULL, TRUE);
         UpdateWindow( hWnd );
     };
 
@@ -466,7 +467,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                 n.real(), 
                                 rc.bottom - n.imag(), 
                                 n.real() + 15, 
-                                rc.bottom - (n.imag() + 15) 
+                                rc.bottom - (n.imag() - 15) 
         );
 
         pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Red ), &pBrush );
@@ -480,7 +481,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                 s.real(), 
                                 rc.bottom - s.imag(), 
                                 s.real() + 15, 
-                                rc.bottom - (s.imag() + 15) 
+                                rc.bottom - (s.imag() - 15) 
         );
 
         pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Blue ), &pBrush );
@@ -494,7 +495,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                 w.real(), 
                                 rc.bottom - w.imag(), 
                                 w.real() + 15, 
-                                rc.bottom - (w.imag() + 15)
+                                rc.bottom - (w.imag() - 15)
         );
 
         pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Brown ), &pBrush );
@@ -508,11 +509,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                 e.real(), 
                                 rc.bottom - e.imag(), 
                                 e.real() + 15, 
-                                rc.bottom - (e.imag() + 15) 
+                                rc.bottom - (e.imag() - 15) 
         );
 
         pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Green ), &pBrush );
         pBitmapRenderTarget->FillRectangle( rectangle, pBrush );
+
+        pBitmapRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 
         pBitmapRenderTarget->EndDraw();
         
@@ -542,13 +545,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         pRenderTarget->BeginDraw();
         pRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
-
+        /*
         pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation( 
                                                                     pStateProperties->mvX,
                                                                     pStateProperties->mvY                   
                                      )
         );
-
+        */
         pRenderTarget->DrawBitmap(
                                 pMaze,
                                 D2D1::RectF(rc.left, rc.top, rc.right, rc.bottom),
@@ -558,7 +561,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         );
 
         pRenderTarget->EndDraw();
-
+        
     };
 
      std::function<void( )> loadTimeStrBuff=[ &strBuff]() {    
@@ -575,7 +578,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         strBuff += "---\n";
      }; 
 
-
      std::function<void( )> loadMaze=[ 
                                        &hWnd,
                                        &strBuff, 
@@ -583,8 +585,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                        &pStateProperties,
                                        &fMaze,
                                        clnField, 
-                                       srllScreen
-                            ]() {
+                                       srllScreen]() {
 
                     for ( int i = 0; 1; ++i ) {
 
@@ -610,26 +611,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     openFile:
                     
                         hFile = CreateFile(
-
-                                            tcharBuff,                // file to open
+                                            tcharBuff,                  // file to open
                                             GENERIC_READ,               // open for reading
                                             FILE_SHARE_READ,            // share for reading
                                             NULL,                       // default security
                                             OPEN_EXISTING,              // existing file only
                                             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, // normal file
                                             NULL                        // no attr. template
-                        );            
+                                );            
 
                     for ( int i = 0; i < MAX_LOADSTRING; ++i ) fMaze [i] = '\0';
 
                     if ( ReadFileEx( hFile, fMaze, MAX_LOADSTRING - 1, &lpOverlapped, AsynRoutine)){
 
                         SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
-
                         initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
+
                         for (int i=0; i<MAX_LOADSTRING; ++i) pStateProperties->f2Mssg[i] = fMaze[i]; 
 
                         CloseHandle(hFile);         //next open will start at the offset
+
+                        //Cuz BitBlt scans from the bottom, stores the content in a reverse order
+                        for ( int i = 0; i < MAX_LOADSTRING-1; ++i )
+                            Common::Maze::maze[ rc.bottom - pStateProperties->itrCounts ][i] = 
+                                pStateProperties->f2Mssg[i]
+                                                ?
+                                                1
+                                                :
+                                                0;
+                        Common::Maze::maze[ rc.bottom - pStateProperties->itrCounts ][MAX_LOADSTRING-1] = 1;
+
+                                                                                  
                     }
                     else {                   
 
@@ -639,7 +651,64 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     
      };
      
+     std::function<void( )> outMaze=[ 
+                                       &hWnd,
+                                       &strBuff, 
+                                       &tcharBuff, 
+                                       &pStateProperties,
+                                       &fMaze,
+                                       clnField, 
+                                       srllScreen
+                            ]() {
 
+                    for ( int i = 0; 1; ++i ) {
+
+                        tcharBuff [i] = pStateProperties->f2path [i];
+
+                        if ( !pStateProperties->f2path [i] ) {
+                            
+                            for ( int j = 0; strBuff[j]; ++i, ++j ) {
+                                
+                                if( i < MAX_LOADSTRING ) tcharBuff [i] = strBuff[j];
+                                else {
+                                
+                                    pStateProperties->path2long = true;
+                                    goto mkFile;
+                                }
+
+                            }
+
+                            goto mkFile;
+                        }
+                    }
+                    
+                    mkFile:
+
+                        hFile = CreateFile(
+
+                                            tcharBuff,                // file to open
+                                            GENERIC_WRITE,               // open for reading
+                                            FILE_SHARE_WRITE,            // share for reading
+                                            NULL,                       // default security
+                                            CREATE_ALWAYS,              // existing file only
+                                            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, // normal file
+                                            NULL                        // no attr. template
+                        );            
+
+                    for ( int i = 0; i < MAX_LOADSTRING; ++i ) fMaze [i] = '\0';
+
+                    if ( WriteFile( hFile, (LPSTR)lpBmp, dwBmpSize, NULL, &lpOverlapped)){
+
+                        SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
+                        CloseHandle(hFile);         //next open will start at the offset
+                    }
+                    else {                   
+
+                        //initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
+                        CloseHandle(hFile);    
+                    }
+                    
+     };
     
     switch (message) {
 
@@ -726,12 +795,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             );
 
             hdc = BeginPaint(hWnd, &ps );            
+            /*
 
             setBitmap( 
-                        std::complex<int>(200, 50), 
-                        std::complex<int>(200, 100), 
-                        std::complex<int>(175, 75), 
-                        std::complex<int>(225, 75) 
+                std::complex<int>(200, rc.bottom + 0), 
+                std::complex<int>(200, rc.bottom + 50), 
+                std::complex<int>(175, rc.bottom + 25), 
+                std::complex<int>(225, rc.bottom + 25) 
+            );
+            */
+
+            setBitmap( 
+                        std::complex<int>(rc.right, rc.bottom + 0), 
+                        std::complex<int>(rc.right, rc.bottom + 50), 
+                        std::complex<int>(rc.right-25, rc.bottom + 25), 
+                        std::complex<int>(rc.right+25, rc.bottom + 25) 
             );
 
             render4walls( 
@@ -745,17 +823,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             loadTcharBuff();          
             TextOut(hdc,0, 50, tcharBuff, strBuff.length() );
             
-            //strBuff = std::to_string( pStateProperties->itrCounts );
-            strBuff = std::to_string( pMaze->GetPixelFormat().format );
+            strBuff = std::to_string( pStateProperties->itrCounts );
+            //strBuff = std::to_string( pMaze->GetPixelFormat().format );
             loadTcharBuff();          
             TextOut(hdc,0, 270 , tcharBuff, strBuff.length() ); 
-            
-            
 
+            strBuff = std::to_string( rc.right );
+            //strBuff = std::to_string( pMaze->GetPixelFormat().format );
+            loadTcharBuff();          
+            TextOut(hdc,50, 270 , tcharBuff, strBuff.length() ); 
 
+            strBuff = std::to_string( rc.bottom );
+            //strBuff = std::to_string( pMaze->GetPixelFormat().format );
+            loadTcharBuff();          
+            TextOut(hdc,100, 270 , tcharBuff, strBuff.length() ); 
+            
+        
             strBuff = pStateProperties->f2Mssg;
             loadTcharBuff();    
-
+            
             TextOut(
                     hdc,
                     pStateProperties->txtL, 
@@ -763,8 +849,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     tcharBuff, 
                     strBuff.length()
             );        
-
-
+         
 
             DeleteDC(hdc);
             hdc = NULL;
@@ -841,7 +926,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 hdc = NULL;
 
                 if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) goto loadF2;
-                //InvalidateRect(hWnd,NULL,TRUE);
+                InvalidateRect(hWnd,NULL,TRUE);
 
                 break;
         }      
@@ -865,7 +950,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneUp;
 
                         pStateProperties->started = true;
-                        pStateProperties->mvY -= 10;
+                        pStateProperties->mvY -= 15;
                     
                         //pStateProperties->started = true;
 
@@ -885,7 +970,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneDown;
 
                         pStateProperties->started = true;
-                        pStateProperties->mvY += 10;
+                        pStateProperties->mvY += 15;
 
                         loadTimeStrBuff();
                         loadTcharBuff();          
@@ -904,7 +989,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneLeft;
 
                         pStateProperties->started = true;
-                        pStateProperties->mvX -= 10;
+                        pStateProperties->mvX -= 15;
 
                         loadTimeStrBuff();
                         loadTcharBuff();      
@@ -922,7 +1007,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneRight;
 
                         pStateProperties->started = true;
-                        pStateProperties->mvX += 10;
+                        pStateProperties->mvX += 15;
 
                         loadTimeStrBuff();
                         loadTcharBuff();      
@@ -952,11 +1037,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             pStateProperties->f2path [i] = tcharBuff [i];
 
                         strBuff = "\\maze.pnm";   
-                        ++pStateProperties->itrCounts;   
                         loadMaze();
                         rstTxt(*pStateProperties);
                         pStateProperties->started = false;
 
+                        if(pStateProperties->f2Mssg[0])
+                            ++pStateProperties->itrCounts;   
+                        
                         rfScreen();
                         
                     doneF2:
@@ -978,6 +1065,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                
                     //updating StateProperties
                     //TAB's been pressed; setting it to true
+                    /*
+                    printMaze:
+
+                        if(pStateProperties->started) goto outDone;
+
+                        pStateProperties->started = true;
+
+                        initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
+                        GetCurrentDirectory( MAX_LOADSTRING, tcharBuff );
+
+                        for ( int i = 0; i< MAX_LOADSTRING; ++i  ) 
+                            pStateProperties->f2path [i] = tcharBuff [i];
+
+                        strBuff = "\\rawBmp.pnm";   
+                        //++pStateProperties->itrCounts;   
+                        outMaze();
+                        rstTxt(*pStateProperties);
+                        pStateProperties->started = false;
+
+                        //rfScreen();
+                        
+                    outDone:
+                    */
+
                     D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED , &pFactory);
 
                     pFactory->CreateHwndRenderTarget ( 
@@ -1002,13 +1113,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                            (bi.biWidth ) * 4 
                     );
                     
-                    /*
-                    pMaze->CopyFromMemory( 
-                                           NULL,
-                                           lpBmp,
-                                           ( bi.biWidth) * 4
-                    );
-                    */
 
                     hdc = BeginPaint(hWnd, &ps );
                     
@@ -1020,7 +1124,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                 std::complex<int>(75, 75) 
                     );
                     
-
                     DeleteDC(hdc);
                     hdc = NULL;
                     EndPaint(hWnd, &ps);
@@ -1037,6 +1140,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     pMaze->Release();
                     pMaze = NULL;
                     
+                    CloseHandle(hFile);
                     break;                
                 }
 
