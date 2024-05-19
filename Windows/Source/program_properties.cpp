@@ -47,7 +47,7 @@ namespace ProgramProperties {
     static void initPropertiesStates ( StateProperties& pStateProperties ) { 
         
         pStateProperties.cleaned   = false;
-        pStateProperties.f2ed      = false;
+        pStateProperties.isF4      = false;
         pStateProperties.f2End     = false;
         pStateProperties.path2long = false;
         pStateProperties.started   = false;
