@@ -62,8 +62,8 @@ using namespace ProgramProperties;
 
 int Common::Location::north_wall = 0;
 int Common::Location::south_wall = 0;
-int Common::Location::east_wall = 0;
-int Common::Location::west_wall = 0;
+int Common::Location::east_wall  = 0;
+int Common::Location::west_wall  = 0;
 
 std::complex<int> Location::north_wall_point(0, 0);
 std::complex<int> Location::south_wall_point(0, 0);
@@ -78,7 +78,12 @@ HINSTANCE        hInst;                                // current instance
 WCHAR            szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR            szWindowClass[MAX_LOADSTRING];            // the main window class name
 StateProperties* pStateProperties;
-bool             f2ed;
+HANDLE           hDIB;
+//D2D1_RECT_U      fullSrn;
+char*            lpBmp;
+BITMAPINFOHEADER bi;
+DWORD            dwBmpSize;
+
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -90,7 +95,7 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 HANDLE              hFile;
 OVERLAPPED          lpOverlapped;
 RECT                rc;
-ID2D1Bitmap*        pMaze;     
+  
 
 VOID CALLBACK AsynRoutine(
                             __in  DWORD dwErrorCode,
@@ -226,10 +231,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
 
    hInst            = hInstance; // Store instance handle in our global variable
    lpOverlapped     = {0};
+   dwBmpSize        = 0;
+   hDIB             = NULL;
+   lpBmp            = NULL;
    
    Common::Maze::load_maze("");
 
-   pMaze            = NULL;
    pStateProperties = new (std::nothrow) StateProperties;
    ProgramProperties::initPropertiesStates( *pStateProperties );
    ProgramProperties::initPropertiesF2( *pStateProperties, MAX_LOADSTRING );
@@ -259,7 +266,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    {
       return FALSE;
    }
-
+   
+   GetClientRect(hWnd, &rc);
+   /*
+   fullSrn.left   = 0;
+   fullSrn.top    = 0;
+   fullSrn.right  = rc.right;
+   fullSrn.bottom = rc.bottom;
+   */
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -278,19 +292,29 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
-    ID2D1Factory*              pFactory = NULL;
-    ID2D1HwndRenderTarget*     pRenderTarget_maze = NULL;
-    ID2D1HwndRenderTarget*     pRenderTarget = NULL;
-    ID2D1HwndRenderTarget*     pRenderTarget_south = NULL;
-    ID2D1SolidColorBrush*      pBrush = NULL;
+    ID2D1Factory*              pFactory                  = NULL;
+    ID2D1HwndRenderTarget*     pRenderTarget             = NULL;
+    ID2D1BitmapRenderTarget*   pBitmapRenderTarget       = NULL;
+    ID2D1SolidColorBrush*      pBrush                    = NULL;
+    
+    ID2D1Bitmap*               pMaze                     = NULL; 
+
+    HDC                        hdc      = NULL;
+    HDC                        hdcMemDC = NULL;
+    HDC                        hdcMem   = NULL;
+    HBITMAP                    hBmp     = NULL;
+    BITMAP                     bmp;
+
 
     PAINTSTRUCT                ps;
-    HDC                        hdc;
-    HRESULT                    hr = S_OK;
+    HRESULT                    hr                        = S_OK;
     RECT                       fullRc;
     RECT                       curRc;
     D2D1_RECT_F                rectangle;
     D2D1_SIZE_U                paint_sz;
+
+    //BITMAPFILEHEADER           bmfHeader;
+
 
     D2D1_RECT_F                full_rectangle = D2D1::RectF( 
                                                             0, 
@@ -353,28 +377,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     };
 
     std::function<void()> srllScreen = [ &hWnd ] () {  //scroll screen
-        /*
+        
         ScrollWindowEx(
                         hWnd, 
                         000, 
-                        GetSystemMetrics( SM_CYSCREEN  ) - 35, 
+                        -(GetSystemMetrics( SM_CYSCREEN  ) - 35), 
                         (CONST RECT *) NULL, 
                         (CONST RECT *) NULL, 
                         (HRGN) NULL, 
                         (PRECT) NULL, 
                         SW_INVALIDATE
         ); 
-        */
-        ScrollWindowEx(
-                        hWnd, 
-                        000, 
-                        -35, 
-                        (CONST RECT *) NULL, 
-                        (CONST RECT *) NULL, 
-                        (HRGN) NULL, 
-                        (PRECT) NULL, 
-                        SW_INVALIDATE
-        ); 
+
 
     };    
 
@@ -421,11 +435,100 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     };
 
     std::function<void( std::complex<int>,std::complex<int>, std::complex<int>,std::complex<int> )> 
+        setBitmap = [ 
+                        &pStateProperties,
+                        &pBitmapRenderTarget, 
+                        &pMaze,
+                        &rectangle, 
+                        &pBrush, 
+                        &set_rectangle_location, 
+                        &colorBrush,
+                        &hWnd,
+                        &fullRc,
+                        &paint_sz,
+                        &pFactory] ( 
+                                    std::complex<int> n, 
+                                    std::complex<int> s, 
+                                    std::complex<int> w, 
+                                    std::complex<int> e ) {         
+
+        pBitmapRenderTarget->BeginDraw(); 
+        pBitmapRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
+
+        pBitmapRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation( 
+                                                                    pStateProperties->mvX,
+                                                                    pStateProperties->mvY                   
+                                     )
+        );
+
+        //Filling north
+        set_rectangle_location( 
+                                n.real(), 
+                                rc.bottom - n.imag(), 
+                                n.real() + 15, 
+                                rc.bottom - (n.imag() + 15) 
+        );
+
+        pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Red ), &pBrush );
+        pBitmapRenderTarget->FillRectangle( rectangle, pBrush);
+        
+        pBrush->Release();
+        pBrush = NULL;
+        
+        //Filling south
+        set_rectangle_location( 
+                                s.real(), 
+                                rc.bottom - s.imag(), 
+                                s.real() + 15, 
+                                rc.bottom - (s.imag() + 15) 
+        );
+
+        pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Blue ), &pBrush );
+        pBitmapRenderTarget->FillRectangle( rectangle, pBrush);
+        
+        pBrush->Release();
+        pBrush = NULL;
+        
+        //Filling west
+        set_rectangle_location( 
+                                w.real(), 
+                                rc.bottom - w.imag(), 
+                                w.real() + 15, 
+                                rc.bottom - (w.imag() + 15)
+        );
+
+        pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Brown ), &pBrush );
+        pBitmapRenderTarget->FillRectangle( rectangle, pBrush );
+        
+        pBrush->Release();
+        pBrush = NULL;
+        
+        //Fill east
+        set_rectangle_location( 
+                                e.real(), 
+                                rc.bottom - e.imag(), 
+                                e.real() + 15, 
+                                rc.bottom - (e.imag() + 15) 
+        );
+
+        pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Green ), &pBrush );
+        pBitmapRenderTarget->FillRectangle( rectangle, pBrush );
+
+        pBitmapRenderTarget->EndDraw();
+        
+        pBrush->Release();
+        pBrush = NULL;
+
+        pBitmapRenderTarget->GetBitmap(&pMaze);
+    };
+
+    std::function<void( std::complex<int>,std::complex<int>, std::complex<int>,std::complex<int> )> 
         render4walls = [ 
                         &pStateProperties,
                         &pRenderTarget, 
                         &rectangle, 
                         &pBrush, 
+                        &pMaze,
                         &set_rectangle_location, 
                         &colorBrush,
                         &hWnd,
@@ -446,63 +549,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                      )
         );
 
-        //Filling north
-        set_rectangle_location( 
-                                n.real(), 
-                                n.imag(), 
-                                n.real() + 15, 
-                                n.imag() + 15 
-        );
+        pRenderTarget->DrawBitmap(
+                                pMaze,
+                                D2D1::RectF(rc.left, rc.top, rc.right, rc.bottom),
+                                1.0,
+                                D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
 
-        colorBrush( D2D1::ColorF( D2D1::ColorF::Red ) );
-        pRenderTarget->FillRectangle( rectangle, pBrush);
-        
-        pBrush->Release();
-        pBrush = NULL;
-        
-        //Filling south
-        set_rectangle_location( 
-                                s.real(), 
-                                s.imag(), 
-                                s.real() + 15, 
-                                s.imag() + 15 
         );
-
-        colorBrush( D2D1::ColorF( D2D1::ColorF::Blue ) );
-        pRenderTarget->FillRectangle( rectangle, pBrush);
-        
-        pBrush->Release();
-        pBrush = NULL;
-        
-        //Filling west
-        set_rectangle_location( 
-                                w.real(), 
-                                w.imag(), 
-                                w.real() + 15, 
-                                w.imag() + 15
-        );
-
-        colorBrush( D2D1::ColorF( D2D1::ColorF::Brown ) );
-        pRenderTarget->FillRectangle( rectangle, pBrush );
-        
-        pBrush->Release();
-        pBrush = NULL;
-        
-        //Fill east
-        set_rectangle_location( 
-                                e.real(), 
-                                e.imag(), 
-                                e.real() + 15, 
-                                e.imag() + 15 
-        );
-
-        colorBrush( D2D1::ColorF( D2D1::ColorF::Green ) );
-        pRenderTarget->FillRectangle( rectangle, pBrush );
 
         pRenderTarget->EndDraw();
-        
-        pBrush->Release();
-        pBrush = NULL;
 
     };
 
@@ -632,10 +687,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         }
 
         case WM_PAINT: {  //For printing context
+             
+            if( hDIB && !pStateProperties->isF4 ){
+            
+                pStateProperties->isF4 = false;
 
+                GlobalUnlock(hDIB);
+                GlobalFree(hDIB);
+
+                hDIB = NULL;
+            }
+
+            if( pStateProperties->isF4 ){
+            
+
+                break;
+            }
+                
             D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED , &pFactory);
 
-            GetClientRect(hWnd, &rc);
             pFactory->CreateHwndRenderTarget(
                     D2D1::RenderTargetProperties(),  
                     D2D1::HwndRenderTargetProperties(
@@ -645,27 +715,43 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     &pRenderTarget
             );
 
+
             if( pStateProperties->started ) goto donePaint;
 
             pStateProperties->started = true;
            
-            hdc = BeginPaint(hWnd, &ps );
-            
+            pRenderTarget->CreateCompatibleRenderTarget(
+                                                        D2D1::SizeF(rc.right, rc.bottom),  
+                                                        &pBitmapRenderTarget
+            );
+
+            hdc = BeginPaint(hWnd, &ps );            
+
+            setBitmap( 
+                        std::complex<int>(200, 50), 
+                        std::complex<int>(200, 100), 
+                        std::complex<int>(175, 75), 
+                        std::complex<int>(225, 75) 
+            );
+
             render4walls( 
-                            std::complex<int>(50, 50), 
-                            std::complex<int>(50, 100), 
-                            std::complex<int>(25, 75), 
-                            std::complex<int>(75, 75) 
+                        std::complex<int>(50, 50), 
+                        std::complex<int>(50, 100), 
+                        std::complex<int>(25, 75), 
+                        std::complex<int>(75, 75) 
             );
             
             loadTimeStrBuff();
             loadTcharBuff();          
             TextOut(hdc,0, 50, tcharBuff, strBuff.length() );
             
-            strBuff = std::to_string( pStateProperties->itrCounts );
+            //strBuff = std::to_string( pStateProperties->itrCounts );
+            strBuff = std::to_string( pMaze->GetPixelFormat().format );
             loadTcharBuff();          
             TextOut(hdc,0, 270 , tcharBuff, strBuff.length() ); 
             
+            
+
 
             strBuff = pStateProperties->f2Mssg;
             loadTcharBuff();    
@@ -676,11 +762,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     pStateProperties->txtTop,
                     tcharBuff, 
                     strBuff.length()
-            );             
+            );        
 
 
-            EndPaint(hWnd, &ps );
+
             DeleteDC(hdc);
+            hdc = NULL;
+            EndPaint(hWnd, &ps );
+
 
             pStateProperties->started = false;
 
@@ -690,9 +779,70 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 pFactory = NULL;
                 pRenderTarget->Release();
                 pRenderTarget = NULL;
+                
+                pBitmapRenderTarget->Release();
+                pBitmapRenderTarget = NULL;
+                pMaze->Release();
+                pMaze = NULL;
+            
+            //srllScreen();
+
+            loadGlobalBuff:
+
+                hdc = GetDC( hWnd );
+                hdcMem = CreateCompatibleDC( hdc );
+
+                hBmp   = CreateCompatibleBitmap( 
+                                                hdc,
+                                                rc.right,
+                                                rc.bottom
+                         );
+
+                SelectObject( hdcMem, hBmp );
+                
+                if (!BitBlt(hdcMem,0 , 0,  rc.right,rc.bottom, hdc, 0, 0,SRCCOPY) )
+                    goto loadF2;
+                
+                GetObject(hBmp, sizeof(BITMAP), &bmp);
+
+                bi.biSize                  = sizeof(BITMAPINFOHEADER);
+                bi.biWidth                 = bmp.bmWidth;
+                bi.biHeight                = bmp.bmHeight;
+                bi.biPlanes                = 1;
+                bi.biBitCount              = 32;
+                bi.biCompression           = BI_RGB;
+                bi.biSizeImage             = 0;
+                bi.biXPelsPerMeter         = 0;
+                bi.biYPelsPerMeter         = 0;
+                bi.biClrUsed               = 0;
+                bi.biClrImportant          = 0;
+            
+                //dwBmpSize = ( (bi.biWidth * bi.biBitCount + 31) / 32) * 4 * bi.biHeight;
+                dwBmpSize = (bi.biWidth  ) * 4 * bi.biHeight;
+
+                hDIB  = GlobalAlloc(GHND, dwBmpSize);
+                lpBmp = (char*)GlobalLock(hDIB);
+
+                GetDIBits(
+                            hdc,
+                            hBmp,
+                            0,
+                            (UINT)rc.bottom,
+                            lpBmp,
+                            (BITMAPINFO*)&bi, 
+                            DIB_RGB_COLORS
+                );
+
+                ReleaseDC(hWnd, hdc);
+                DeleteDC(hdc);
+                DeleteObject( hBmp );
+                DeleteDC(hdcMem);
+
+                hdc = NULL;
 
                 if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) goto loadF2;
-                
+                //InvalidateRect(hWnd,NULL,TRUE);
+
                 break;
         }      
 
@@ -816,9 +966,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 
                 case VK_F4: {               
                     
-                    pStateProperties->cleaned = true;
-
-
+                    pStateProperties->isF4 = true;
+                    InvalidateRect( hWnd, NULL, TRUE);
+                    UpdateWindow( hWnd );
 
                     break;
                 }
@@ -828,25 +978,65 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                
                     //updating StateProperties
                     //TAB's been pressed; setting it to true
-                    pStateProperties->isRender = true;
+                    D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED , &pFactory);
 
-                    GetClientRect(hWnd, &fullRc);
-                    paint_sz = D2D1::SizeU( fullRc.right, fullRc.bottom );
-                    D2D1CreateFactory( D2D1_FACTORY_TYPE_SINGLE_THREADED, &pFactory );         
+                    pFactory->CreateHwndRenderTarget ( 
+                                D2D1::RenderTargetProperties(),  
+                                D2D1::HwndRenderTargetProperties(
+                                                                    hWnd, 
+                                                                    D2D1::SizeU(rc.right, rc.bottom)
+                                ), 
+                                &pRenderTarget
+                    );
+
+                    pRenderTarget->CreateCompatibleRenderTarget(
+                                                                D2D1::SizeF(rc.right, rc.bottom),  
+                                                                &pBitmapRenderTarget
+                    );
+
+                    pBitmapRenderTarget->GetBitmap( &pMaze );
                     
-                    pFactory->CreateHwndRenderTarget (  //pRenderTarget will hold the address
-                                                        D2D1::RenderTargetProperties( ),  
-                                                        D2D1::HwndRenderTargetProperties(hWnd, paint_sz), 
-                                                        &pRenderTarget
+                    pMaze->CopyFromMemory( 
+                                           NULL,
+                                           lpBmp,
+                                           (bi.biWidth ) * 4 
                     );
+                    
+                    /*
+                    pMaze->CopyFromMemory( 
+                                           NULL,
+                                           lpBmp,
+                                           ( bi.biWidth) * 4
+                    );
+                    */
 
+                    hdc = BeginPaint(hWnd, &ps );
+                    
+                    
                     render4walls( 
-                                    std::complex<int>(50, 50), 
-                                    std::complex<int>(50, 100), 
-                                    std::complex<int>(25, 75), 
-                                    std::complex<int>(75, 75) 
+                                std::complex<int>(50, 50), 
+                                std::complex<int>(50, 100), 
+                                std::complex<int>(25, 75), 
+                                std::complex<int>(75, 75) 
                     );
+                    
 
+                    DeleteDC(hdc);
+                    hdc = NULL;
+                    EndPaint(hWnd, &ps);
+
+                    pFactory->Release();
+                    pFactory = NULL;
+
+                    pRenderTarget->Release();
+                    pRenderTarget = NULL;
+                
+                    pBitmapRenderTarget->Release();
+                    pBitmapRenderTarget = NULL;
+                    
+                    pMaze->Release();
+                    pMaze = NULL;
+                    
                     break;                
                 }
 
