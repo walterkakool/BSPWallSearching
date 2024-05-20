@@ -48,7 +48,7 @@
 #include "components.hpp"
 #include "program_properties.cpp"
 
-#define MAX_LOADSTRING 128
+#define MAX_LOADSTRING 140
 #define DWORD_MAX      4294967295 
 
 #define _USE_MATH_DEFINES
@@ -462,14 +462,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         );
         */
         
-        for(int i = 0; i < rc.bottom/15; ++i)
-            for(int j = 0; j < rc.right/15; ++j){
+        for(int i = 0; i < rc.bottom/10; ++i)
+            for(int j = 0; j < rc.right/10; ++j){
             
                 set_rectangle_location( 
-                                        j*15, 
-                                        i*15, 
-                                        j*15 + 15, 
-                                        i*15 + 15 
+                                        j*10, 
+                                        i*10, 
+                                        j*10 + 10, 
+                                        i*10 + 10 
                 );                
 
 
@@ -685,15 +685,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         //Cuz BitBlt scans from the bottom, stores the content in a reverse order
                         for ( int i = 0; i < MAX_LOADSTRING-1; ++i )
-                            Common::Maze::maze[ rc.bottom/15 - pStateProperties->itrCounts - 1 ][i] = 
+                            Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][i] = 
                                 pStateProperties->f2Mssg[i] == '1'
                                                 ?
                                                 1
                                                 :
                                                 0;
-                        Common::Maze::maze[ rc.bottom/15 - pStateProperties->itrCounts - 1 ][MAX_LOADSTRING-1] = 1;
 
-                                                                                  
+                        Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][MAX_LOADSTRING-1] = 1;
                     }
                     else {                   
 
@@ -1001,7 +1000,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneUp;
 
                         pStateProperties->started = true;
-                        pStateProperties->mvY -= 15;
+                        pStateProperties->mvY -= 10;
                     
        
 
@@ -1018,7 +1017,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneDown;
 
                         pStateProperties->started = true;
-                        pStateProperties->mvY += 15;
+                        pStateProperties->mvY += 10;
 
          
 
@@ -1036,7 +1035,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneLeft;
 
                         pStateProperties->started = true;
-                        pStateProperties->mvX -= 15;
+                        pStateProperties->mvX -= 10;
 
 
 
@@ -1053,7 +1052,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneRight;
 
                         pStateProperties->started = true;
-                        pStateProperties->mvX += 15;
+                        pStateProperties->mvX += 10;
 
 
                         pStateProperties->started = false;
