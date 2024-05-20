@@ -455,16 +455,69 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         pBitmapRenderTarget->BeginDraw(); 
         pBitmapRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
-
+        /*
         pBitmapRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation( 
                                                                     pStateProperties->mvX,
                                                                     pStateProperties->mvY                   
                                      )
         );
+        */
+        
+        for(int i = 0; i < rc.bottom/15; ++i)
+            for(int j = 0; j < rc.right/15; ++j){
+            
+                set_rectangle_location( 
+                                        j*15, 
+                                        i*15, 
+                                        j*15 + 15, 
+                                        i*15 + 15 
+                );                
 
+
+                if( Common::Maze::maze[i][j] ){
+                
+                    pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Black ), &pBrush );
+
+                    pBitmapRenderTarget->FillRectangle( rectangle, pBrush);   
+
+                    pBrush->Release();
+                    pBrush = NULL;
+                }
+            
+            }
+            /*
+                set_rectangle_location( 
+                                        0*10, 
+                                        0*10, 
+                                        0*10 + 15, 
+                                        0*10 + 15 
+                );   
+
+                    pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Black ), &pBrush );
+
+                    pBitmapRenderTarget->FillRectangle( rectangle, pBrush);   
+
+                    pBrush->Release();
+                    pBrush = NULL;
+
+                set_rectangle_location( 
+                                        1*15, 
+                                        1*15, 
+                                        1*15 + 15, 
+                                        1*15 + 15 
+                );   
+
+                    pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Black ), &pBrush );
+
+                    pBitmapRenderTarget->FillRectangle( rectangle, pBrush);   
+
+                    pBrush->Release();
+                    pBrush = NULL;
+              */      
+        /*
         //Filling north
         set_rectangle_location( 
-                                n.real(), 
+                                Common::Maze::maze[][], 
                                 rc.bottom - n.imag(), 
                                 n.real() + 15, 
                                 rc.bottom - (n.imag() - 15) 
@@ -516,11 +569,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         pBitmapRenderTarget->FillRectangle( rectangle, pBrush );
 
         pBitmapRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
-
+        */
         pBitmapRenderTarget->EndDraw();
         
-        pBrush->Release();
-        pBrush = NULL;
+        //pBrush->Release();
+        //pBrush = NULL;
 
         pBitmapRenderTarget->GetBitmap(&pMaze);
     };
@@ -633,8 +686,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         //Cuz BitBlt scans from the bottom, stores the content in a reverse order
                         for ( int i = 0; i < MAX_LOADSTRING-1; ++i )
-                            Common::Maze::maze[ rc.bottom - pStateProperties->itrCounts ][i] = 
-                                pStateProperties->f2Mssg[i]
+                            Common::Maze::maze[ rc.bottom/15 - pStateProperties->itrCounts - 1 ][i] = 
+                                pStateProperties->f2Mssg[i] == '1'
                                                 ?
                                                 1
                                                 :
@@ -848,8 +901,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     pStateProperties->txtTop,
                     tcharBuff, 
                     strBuff.length()
-            );        
-         
+            );
 
             DeleteDC(hdc);
             hdc = NULL;
@@ -926,7 +978,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 hdc = NULL;
 
                 if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) goto loadF2;
-                InvalidateRect(hWnd,NULL,TRUE);
+                //InvalidateRect(hWnd,NULL,TRUE);
 
                 break;
         }      
@@ -1038,15 +1090,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         strBuff = "\\maze.pnm";   
                         loadMaze();
-                        rstTxt(*pStateProperties);
+                        //rstTxt(*pStateProperties);
                         pStateProperties->started = false;
 
                         if(pStateProperties->f2Mssg[0])
                             ++pStateProperties->itrCounts;   
                         
-                        rfScreen();
+                        //rfScreen();
                         
                     doneF2:
+                        //InvalidateRect(hWnd, NULL, TRUE);
                         break;                
                 }
 
