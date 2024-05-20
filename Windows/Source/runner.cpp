@@ -130,11 +130,10 @@ VOID CALLBACK AsynRoutine(
         }
         else {
         
-            pStateProperties->itrCounts,
             lpOverlapped->OffsetHigh, 
             lpOverlapped->Offset            = 0;        //No transferred 
 
-            rstIterator(*pStateProperties);
+            //rstIterator(*pStateProperties);
         }
                  
 
@@ -235,7 +234,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    hFile            = NULL;
 
 
-   Common::Maze::load_maze("");
+   //Common::Maze::load_maze("");
 
    pStateProperties = new (std::nothrow) StateProperties;
    ProgramProperties::initPropertiesStates( *pStateProperties );
@@ -692,7 +691,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                 1
                                                 :
                                                 0;
-                        Common::Maze::maze[ rc.bottom - pStateProperties->itrCounts ][MAX_LOADSTRING-1] = 1;
+                        Common::Maze::maze[ rc.bottom/15 - pStateProperties->itrCounts - 1 ][MAX_LOADSTRING-1] = 1;
 
                                                                                   
                     }
@@ -757,7 +756,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     }
                     else {                   
 
-                        //initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
+                        initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
                         CloseHandle(hFile);    
                     }
                     
@@ -822,7 +821,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             if( pStateProperties->isF4 ){
             
-
+                pStateProperties->isF4 = false;
                 break;
             }
                 
@@ -897,8 +896,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             
             TextOut(
                     hdc,
-                    pStateProperties->txtL, 
-                    pStateProperties->txtTop,
+                    0, 
+                    0,
                     tcharBuff, 
                     strBuff.length()
             );
@@ -978,7 +977,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 hdc = NULL;
 
                 if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) goto loadF2;
-                //InvalidateRect(hWnd,NULL,TRUE);
+                InvalidateRect(hWnd,NULL,TRUE);
 
                 break;
         }      
@@ -1004,10 +1003,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         pStateProperties->started = true;
                         pStateProperties->mvY -= 15;
                     
-                        //pStateProperties->started = true;
-
-                        loadTimeStrBuff();
-                        loadTcharBuff();          
+       
 
                         pStateProperties->started = false;
                         InvalidateRect( hWnd, NULL, TRUE );
@@ -1024,8 +1020,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         pStateProperties->started = true;
                         pStateProperties->mvY += 15;
 
-                        loadTimeStrBuff();
-                        loadTcharBuff();          
+         
 
                         pStateProperties->started = false;
                         InvalidateRect( hWnd, NULL, TRUE );
@@ -1043,8 +1038,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         pStateProperties->started = true;
                         pStateProperties->mvX -= 15;
 
-                        loadTimeStrBuff();
-                        loadTcharBuff();      
+
 
                         pStateProperties->started = false;
                         InvalidateRect( hWnd, NULL, TRUE );
@@ -1061,8 +1055,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         pStateProperties->started = true;
                         pStateProperties->mvX += 15;
 
-                        loadTimeStrBuff();
-                        loadTcharBuff();      
 
                         pStateProperties->started = false;
                         InvalidateRect( hWnd, NULL, TRUE );
@@ -1096,10 +1088,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         if(pStateProperties->f2Mssg[0])
                             ++pStateProperties->itrCounts;   
                         
-                        //rfScreen();
+                      
                         
                     doneF2:
-                        //InvalidateRect(hWnd, NULL, TRUE);
+                        InvalidateRect(hWnd, NULL, TRUE);
+                        UpdateWindow( hWnd );
                         break;                
                 }
 
