@@ -48,8 +48,10 @@
 #include "components.hpp"
 #include "program_properties.cpp"
 
-#define MAX_LOADSTRING 140
-#define DWORD_MAX      4294967295 
+#define MAX_LOADSTRING  256
+#define BUFF_MAX        256
+#define MAX_MAZE_WIDTH  140  
+#define DWORD_MAX       4294967295 
 
 #define _USE_MATH_DEFINES
 //Abandoned personal constant
@@ -75,8 +77,8 @@ std::complex<int> Location::point(0, 0);
 
 // Global Variables:
 HINSTANCE        hInst;                                // current instance
-WCHAR            szTitle[MAX_LOADSTRING];                  // The title bar text
-WCHAR            szWindowClass[MAX_LOADSTRING];            // the main window class name
+WCHAR            szTitle[BUFF_MAX];                  // The title bar text
+WCHAR            szWindowClass[BUFF_MAX];            // the main window class name
 StateProperties* pStateProperties;
 HANDLE           hDIB;
 char*            lpBmp;
@@ -116,16 +118,16 @@ VOID CALLBACK AsynRoutine(
     
         if(transferred) {
 
-            if( lpOverlapped->Offset+transferred < lpOverlapped->Offset ){
+            if( lpOverlapped->Offset+transferred + 2 < lpOverlapped->Offset ){
             
                 ++lpOverlapped->OffsetHigh;
                   lpOverlapped->Offset = lpOverlapped->OffsetHigh
                                                       ? 
-                                                      transferred + lpOverlapped->Offset
+                                                      transferred + lpOverlapped->Offset + 2
                                                       :
                                                       0;
             }
-            else lpOverlapped->Offset += transferred;
+            else lpOverlapped->Offset += transferred + 2;
 
         }
         else {
@@ -161,8 +163,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // TODO: Place code here.
 
     // Initialize global strings
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_BSPMAZE, szWindowClass, MAX_LOADSTRING);
+    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, BUFF_MAX);
+    LoadStringW(hInstance, IDC_BSPMAZE, szWindowClass, BUFF_MAX);
     MyRegisterClass(hInstance);
 
     // Perform application initialization:
@@ -238,7 +240,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
 
    pStateProperties = new (std::nothrow) StateProperties;
    ProgramProperties::initPropertiesStates( *pStateProperties );
-   ProgramProperties::initPropertiesF2( *pStateProperties, MAX_LOADSTRING );
+   ProgramProperties::initPropertiesF2( *pStateProperties, BUFF_MAX );
+   //initF2Mssg( *pStateProperties, BUFF_MAX );
+   //initF2Path( *pStateProperties, BUFF_MAX );
    ProgramProperties::rstIterator( *pStateProperties ); 
    ProgramProperties::rstMv( *pStateProperties ); 
    ProgramProperties::rstTxt( *pStateProperties ); 
@@ -328,7 +332,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     StateProperties*           pStateProperties = reinterpret_cast<StateProperties*>(ptr);
 
     TCHAR                      scroll_bar[]     = L"Scroll bar called";
-    TCHAR                      tcharBuff[ MAX_LOADSTRING ] = { '\0' };
+    TCHAR                      tcharBuff[ BUFF_MAX ] = { '\0' };
     string                     strBuff          = "";
     char                       fMaze[ MAX_LOADSTRING ] = { '\0' };
 
@@ -367,7 +371,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
     std::function<void()> read_maze = [ &fMaze, &tcharBuff ]() {
         
-        for ( int i = 0; i< MAX_LOADSTRING; ++i  ) tcharBuff [ i ] = fMaze [ i ];
+        for ( int i = 0; i< BUFF_MAX; ++i  ) tcharBuff [ i ] = fMaze [ i ];
     };
 
     std::function<void( D2D1::ColorF )> colorBrush =
@@ -463,7 +467,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         */
         
         for(int i = 0; i < rc.bottom/10; ++i)
-            for(int j = 0; j < rc.right/10; ++j){
+            for(int j = 0; j < MAX_MAZE_WIDTH; ++j){
             
                 set_rectangle_location( 
                                         j*10, 
@@ -518,7 +522,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         set_rectangle_location( 
                                 Common::Maze::maze[][], 
                                 rc.bottom - n.imag(), 
-                                n.real() + 15, 
+                                n.real() + 15,  
                                 rc.bottom - (n.imag() - 15) 
         );
 
@@ -647,7 +651,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             
                             for ( int j = 0; strBuff[j]; ++i, ++j ) {
                                 
-                                if( i < MAX_LOADSTRING ) tcharBuff [i] = strBuff[j];
+                                if( i < BUFF_MAX ) tcharBuff [i] = strBuff[j];
                                 else {
                                 
                                     pStateProperties->path2long = true;
@@ -674,29 +678,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                     for ( int i = 0; i < MAX_LOADSTRING; ++i ) fMaze [i] = '\0';
 
-                    if ( ReadFileEx( hFile, fMaze, MAX_LOADSTRING - 1, &lpOverlapped, AsynRoutine)){
+                    if ( ReadFileEx( hFile, fMaze, MAX_MAZE_WIDTH, &lpOverlapped, AsynRoutine)){
 
                         SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
-                        initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
+                        initPropertiesF2 ( *pStateProperties, BUFF_MAX );
 
-                        for (int i=0; i<MAX_LOADSTRING; ++i) pStateProperties->f2Mssg[i] = fMaze[i]; 
+                        for (int i=0; i<MAX_MAZE_WIDTH; ++i) pStateProperties->f2Mssg[i] = fMaze[i]; 
 
                         CloseHandle(hFile);         //next open will start at the offset
 
                         //Cuz BitBlt scans from the bottom, stores the content in a reverse order
-                        for ( int i = 0; i < MAX_LOADSTRING-1; ++i )
+                        for ( int i = 0; i < MAX_MAZE_WIDTH; ++i )
                             Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][i] = 
-                                pStateProperties->f2Mssg[i] == '1'
-                                                ?
-                                                1
-                                                :
-                                                0;
+                                pStateProperties->f2Mssg[i] == '1' 
+                                                            ?
+                                                            1
+                                                            :
+                                                            0;
 
-                        Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][MAX_LOADSTRING-1] = 1;
+                        //Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][MAX_MAZE_WIDTH-1] = 1;
                     }
                     else {                   
 
-                        initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
+                        initPropertiesF2 ( *pStateProperties, BUFF_MAX );
+                        //initF2Mssg( *pStateProperties, BUFF_MAX );
+                        //initF2Path( *pStateProperties, BUFF_MAX );
                         CloseHandle(hFile);    
                     }
                     
@@ -720,7 +726,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             
                             for ( int j = 0; strBuff[j]; ++i, ++j ) {
                                 
-                                if( i < MAX_LOADSTRING ) tcharBuff [i] = strBuff[j];
+                                if( i < BUFF_MAX ) tcharBuff [i] = strBuff[j];
                                 else {
                                 
                                     pStateProperties->path2long = true;
@@ -746,7 +752,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                             NULL                        // no attr. template
                         );            
 
-                    for ( int i = 0; i < MAX_LOADSTRING; ++i ) fMaze [i] = '\0';
+                    for ( int i = 0; i < BUFF_MAX; ++i ) fMaze [i] = '\0';
 
                     if ( WriteFile( hFile, (LPSTR)lpBmp, dwBmpSize, NULL, &lpOverlapped)){
 
@@ -755,7 +761,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     }
                     else {                   
 
-                        initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
+                        initPropertiesF2 ( *pStateProperties, BUFF_MAX );
+                        //initF2Mssg( *pStateProperties, BUFF_MAX );
+                        //initF2Path( *pStateProperties, BUFF_MAX );
                         CloseHandle(hFile);    
                     }
                     
@@ -888,7 +896,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             //strBuff = std::to_string( pMaze->GetPixelFormat().format );
             loadTcharBuff();          
             TextOut(hdc,100, 270 , tcharBuff, strBuff.length() ); 
-            
+
+            strBuff = std::to_string( lpOverlapped.Offset );
+            //strBuff = std::to_string( pMaze->GetPixelFormat().format );
+            loadTcharBuff();          
+            TextOut(hdc,150, 270 , tcharBuff, strBuff.length() );             
         
             strBuff = pStateProperties->f2Mssg;
             loadTcharBuff();    
@@ -1073,10 +1085,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         pStateProperties->started = true;
 
                     
-                        initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
-                        GetCurrentDirectory( MAX_LOADSTRING, tcharBuff );
+                        initPropertiesF2 ( *pStateProperties, BUFF_MAX );
+                        //initF2Mssg( *pStateProperties, BUFF_MAX );
+                        //initF2Path( *pStateProperties, BUFF_MAX );
+                        GetCurrentDirectory( BUFF_MAX, tcharBuff );
 
-                        for ( int i = 0; i< MAX_LOADSTRING; ++i  ) 
+                        for ( int i = 0; i< BUFF_MAX; ++i  ) 
                             pStateProperties->f2path [i] = tcharBuff [i];
 
                         strBuff = "\\maze.pnm";   
@@ -1099,6 +1113,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 case VK_F4: {               
                     
                     pStateProperties->isF4 = true;
+                    rstIterator( *pStateProperties );
                     InvalidateRect( hWnd, NULL, TRUE);
                     UpdateWindow( hWnd );
 
