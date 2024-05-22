@@ -331,12 +331,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    }
    
    GetClientRect(hWnd, &rc);
-   /*
-   fullSrn.left   = 0;
-   fullSrn.top    = 0;
-   fullSrn.right  = rc.right;
-   fullSrn.bottom = rc.bottom;
-   */
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -403,8 +397,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         //curRc.left    = pStateProperties->txtL;
         //curRc.top     = pStateProperties->txtTop;
-        curRc.right   = pStateProperties->txtR;
-        curRc.bottom  = pStateProperties->txtBottom;
+        //curRc.right   = pStateProperties->txtR;
+        //curRc.bottom  = pStateProperties->txtBottom;
 
         //InvalidateRect( hWnd, &curRc, TRUE);
         InvalidateRect( hWnd, NULL, TRUE);
@@ -521,7 +515,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         );
         */
         
-        for(int i = 0; i < rc.bottom/10; ++i)
+        //for(int i = 0; i < rc.bottom/10; ++i)
+        for(int i = 0; i < (pStateProperties->itrCounts %(rc.bottom/10))+1; ++i)
             for(int j = 0; j < MAX_MAZE_WIDTH; ++j){
             
                 set_rectangle_location( 
@@ -737,7 +732,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             for ( int i = 0; i < BUFF_MAX; ++i ) buffMaze [i] = '\0';
 
                             
-                            if ( ReadFileEx( hFile, buffMaze, BUFF_MAX, &lpOverlapped, TitleRoutine)){
+                            if ( ReadFileEx( hFile, buffMaze, BUFF_MAX-1, &lpOverlapped, TitleRoutine)){
 
                                 SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
                                 
@@ -779,7 +774,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                             //Cuz BitBlt scans from the bottom, stores the content in a reverse order
                             for ( int i = 0; i < MAX_MAZE_WIDTH; ++i )
-                                Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][i] = 
+                                Common::Maze::maze[ pStateProperties->height - pStateProperties->itrCounts ][i] = 
                                     pStateProperties->f2Mssg[i] == '1' 
                                                                 ?
                                                                 1
@@ -958,25 +953,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         std::complex<int>(25, 75), 
                         std::complex<int>(75, 75) 
             );
+
+            strBuff = "rc.bottom/10:  ";
+            strBuff += std::to_string( rc.bottom/10  );
+            loadTcharBuff();          
+            TextOut(hdc,100, 270 , tcharBuff, strBuff.length() ); 
+
+            strBuff = "pStateProperties->itrCounts:  ";
+            strBuff += std::to_string( pStateProperties->itrCounts );
+            loadTcharBuff();          
+            TextOut(hdc,350, 270 , tcharBuff, strBuff.length() ); 
+
+            strBuff = "pStateProperties->height:  ";
+            strBuff += std::to_string( pStateProperties->height );
+            loadTcharBuff();          
+            TextOut(hdc,950, 270 , tcharBuff, strBuff.length() ); 
+
+
             /*
             loadTimeStrBuff();
             loadTcharBuff();          
             TextOut(hdc,0, 50, tcharBuff, strBuff.length() );
             
-            strBuff = std::to_string( pStateProperties->itrCounts );
-            //strBuff = std::to_string( pMaze->GetPixelFormat().format );
-            loadTcharBuff();          
-            TextOut(hdc,0, 270 , tcharBuff, strBuff.length() ); 
 
-            strBuff = std::to_string( rc.right );
-            //strBuff = std::to_string( pMaze->GetPixelFormat().format );
-            loadTcharBuff();          
-            TextOut(hdc,50, 270 , tcharBuff, strBuff.length() ); 
 
-            strBuff = std::to_string( rc.bottom );
-            //strBuff = std::to_string( pMaze->GetPixelFormat().format );
-            loadTcharBuff();          
-            TextOut(hdc,100, 270 , tcharBuff, strBuff.length() ); 
+
 
             strBuff = std::to_string( lpOverlapped.Offset );
             //strBuff = std::to_string( pMaze->GetPixelFormat().format );
@@ -1066,8 +1067,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 DeleteDC(hdcMem);
 
                 hdc = NULL;
-
-                if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) goto loadF2;
+                
+                //if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) goto loadF2;
                 InvalidateRect(hWnd,NULL,TRUE);
 
                 break;
@@ -1184,8 +1185,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                       
                         
                     doneF2:
-                        InvalidateRect(hWnd, NULL, TRUE);
-                        UpdateWindow( hWnd );
+                        //InvalidateRect(hWnd,NULL,TRUE);
+                        //UpdateWindow( hWnd );
+                        if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
+                            SendMessage( hWnd, WM_KEYDOWN, VK_F2, lParam );
                         break;                
                 }
 
