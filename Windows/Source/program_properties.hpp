@@ -54,7 +54,7 @@ namespace ProgramProperties{
 
 			bool    started;
 			bool	isRender;
-			bool	f2ed;
+			bool	isF4;
 			bool	f2End;
 			bool	cleaned;
 			bool	path2long;
@@ -63,8 +63,8 @@ namespace ProgramProperties{
 			string	f2Mssg;  //F2 content
 			string  f2path;
 
-			int     txtL;
-			int	    txtTop;
+			int     width;
+			int	    height;
 			int     txtR;
 			int     txtBottom;
 
@@ -78,7 +78,7 @@ namespace ProgramProperties{
 	static void initPropertiesF2 ( StateProperties& pStateProperties, int size );
 	static void rstIterator ( StateProperties& pStateProperties);
 	static void rstMv ( StateProperties& pStateProperties);
-	static void rstTxt ( StateProperties& pStateProperties);
+	static void rstDimensions ( StateProperties& pStateProperties);
 }
 
 
