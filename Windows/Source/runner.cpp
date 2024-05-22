@@ -1080,7 +1080,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             break;
         }
-    
+
+        case WM_SYSKEYDOWN:{
+        
+            switch( wParam ) {
+
+                default:
+                    break;
+
+                case VK_UP:{
+
+                    goto keyTAB;
+                    break;
+                }
+            }
+        }
+
         case WM_KEYDOWN:{
 
             switch( wParam ) {
@@ -1231,7 +1246,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         
                     outDone:
                     */
-
+                    keyTAB:
                     D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED , &pFactory);
 
                     pFactory->CreateHwndRenderTarget ( 
