@@ -515,8 +515,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         );
         */
         
-        //for(int i = 0; i < rc.bottom/10; ++i)
-        for(int i = 0; i < (pStateProperties->itrCounts %(rc.bottom/10))+1; ++i)
+        for(int i = 0; i < rc.bottom; ++i)
             for(int j = 0; j < MAX_MAZE_WIDTH; ++j){
             
                 set_rectangle_location( 
@@ -527,7 +526,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 );                
 
 
-                if( Common::Maze::maze[i][j] ){
+                if( Common::Maze::maze[i + pStateProperties->verticalPg*rc.bottom/10 ][j] ){
                 
                     pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Black ), &pBrush );
 
@@ -538,95 +537,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 }
             
             }
-            /*
-                set_rectangle_location( 
-                                        0*10, 
-                                        0*10, 
-                                        0*10 + 15, 
-                                        0*10 + 15 
-                );   
-
-                    pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Black ), &pBrush );
-
-                    pBitmapRenderTarget->FillRectangle( rectangle, pBrush);   
-
-                    pBrush->Release();
-                    pBrush = NULL;
-
-                set_rectangle_location( 
-                                        1*15, 
-                                        1*15, 
-                                        1*15 + 15, 
-                                        1*15 + 15 
-                );   
-
-                    pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Black ), &pBrush );
-
-                    pBitmapRenderTarget->FillRectangle( rectangle, pBrush);   
-
-                    pBrush->Release();
-                    pBrush = NULL;
-              */      
-        /*
-        //Filling north
-        set_rectangle_location( 
-                                Common::Maze::maze[][], 
-                                rc.bottom - n.imag(), 
-                                n.real() + 15,  
-                                rc.bottom - (n.imag() - 15) 
-        );
-
-        pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Red ), &pBrush );
-        pBitmapRenderTarget->FillRectangle( rectangle, pBrush);
-        
-        pBrush->Release();
-        pBrush = NULL;
-        
-        //Filling south
-        set_rectangle_location( 
-                                s.real(), 
-                                rc.bottom - s.imag(), 
-                                s.real() + 15, 
-                                rc.bottom - (s.imag() - 15) 
-        );
-
-        pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Blue ), &pBrush );
-        pBitmapRenderTarget->FillRectangle( rectangle, pBrush);
-        
-        pBrush->Release();
-        pBrush = NULL;
-        
-        //Filling west
-        set_rectangle_location( 
-                                w.real(), 
-                                rc.bottom - w.imag(), 
-                                w.real() + 15, 
-                                rc.bottom - (w.imag() - 15)
-        );
-
-        pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Brown ), &pBrush );
-        pBitmapRenderTarget->FillRectangle( rectangle, pBrush );
-        
-        pBrush->Release();
-        pBrush = NULL;
-        
-        //Fill east
-        set_rectangle_location( 
-                                e.real(), 
-                                rc.bottom - e.imag(), 
-                                e.real() + 15, 
-                                rc.bottom - (e.imag() - 15) 
-        );
-
-        pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Green ), &pBrush );
-        pBitmapRenderTarget->FillRectangle( rectangle, pBrush );
-
-        pBitmapRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
-        */
         pBitmapRenderTarget->EndDraw();
-        
-        //pBrush->Release();
-        //pBrush = NULL;
 
         pBitmapRenderTarget->GetBitmap(&pMaze);
     };
@@ -953,7 +864,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         std::complex<int>(25, 75), 
                         std::complex<int>(75, 75) 
             );
-
+            /*
             strBuff = "rc.bottom/10:  ";
             strBuff += std::to_string( rc.bottom/10  );
             loadTcharBuff();          
@@ -969,8 +880,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             loadTcharBuff();          
             TextOut(hdc,950, 270 , tcharBuff, strBuff.length() ); 
 
-
-            /*
             loadTimeStrBuff();
             loadTcharBuff();          
             TextOut(hdc,0, 50, tcharBuff, strBuff.length() );
@@ -1069,7 +978,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 hdc = NULL;
                 
                 //if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) goto loadF2;
-                InvalidateRect(hWnd,NULL,TRUE);
+                SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
 
                 break;
         }      
@@ -1090,9 +999,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_UP:{
 
-                    goto keyTAB;
+                    ++pStateProperties->verticalPg;
                     break;
                 }
+
+                case VK_DOWN:{
+
+                    pStateProperties->verticalPg = pStateProperties->verticalPg
+                                                                    ?
+                                                                    --pStateProperties->verticalPg
+                                                                    :
+                                                                    0;
+                    break;
+                }
+
             }
         }
 
@@ -1208,14 +1128,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 }
 
                 
-                case VK_F4: {               
+                case VK_F5: {               
                     
-                    pStateProperties->isF4 = true;
-                    ProgramProperties::rstIterator( *pStateProperties );
-                    InvalidateRect( hWnd, NULL, TRUE);
-                    UpdateWindow( hWnd );
+                    if(pStateProperties->started) goto doneF5;
 
-                    break;
+                        pStateProperties->started = true;
+
+                        pStateProperties->started = false;
+                        InvalidateRect( hWnd, NULL, TRUE );
+                        UpdateWindow( hWnd );
+
+                    doneF5:
+                        break;  
                 }
 
                 //will toggle location
