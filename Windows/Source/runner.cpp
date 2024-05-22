@@ -515,7 +515,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         );
         */
         
-        for(int i = 0; i < rc.bottom; ++i)
+        for(int i = 0; i < rc.bottom/10; ++i)
             for(int j = 0; j < MAX_MAZE_WIDTH; ++j){
             
                 set_rectangle_location( 
@@ -537,6 +537,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 }
             
             }
+
         pBitmapRenderTarget->EndDraw();
 
         pBitmapRenderTarget->GetBitmap(&pMaze);
@@ -999,7 +1000,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_UP:{
 
-                    ++pStateProperties->verticalPg;
+                    pStateProperties->verticalPg = pStateProperties->verticalPg < 1+pStateProperties->height/rc.bottom 
+                                                                    ?
+                                                                    ++pStateProperties->verticalPg
+                                                                    :
+                                                                    pStateProperties->verticalPg;
                     break;
                 }
 
@@ -1010,6 +1015,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                                     --pStateProperties->verticalPg
                                                                     :
                                                                     0;
+                    break;
+                }
+
+                case VK_LEFT:{
+
+                    pStateProperties->horizontalPg = pStateProperties->horizontalPg
+                                                                    ?
+                                                                    --pStateProperties->horizontalPg
+                                                                    :
+                                                                    0;
+                    break;
+                }
+
+                case VK_RIGHT:{
+
+                    pStateProperties->horizontalPg = pStateProperties->horizontalPg < 1+pStateProperties->height/rc.right 
+                                                                    ?
+                                                                    ++pStateProperties->horizontalPg
+                                                                    :
+                                                                    pStateProperties->horizontalPg;
                     break;
                 }
 
