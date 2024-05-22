@@ -48,7 +48,6 @@
 #include "components.hpp"
 #include "program_properties.cpp"
 
-#define MAX_LOADSTRING  256
 #define BUFF_MAX        256
 #define MAX_MAZE_WIDTH  140  
 #define DWORD_MAX       4294967295 
@@ -85,6 +84,9 @@ char*            lpBmp;
 BITMAPINFOHEADER bi;
 DWORD            dwBmpSize;
 
+TCHAR                      tcharBuff[BUFF_MAX]      = { '\0' };
+char                       buffMaze[BUFF_MAX]       = { '\0' };
+string                     strBuff;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -97,7 +99,13 @@ HANDLE              hFile;
 OVERLAPPED          lpOverlapped;
 RECT                rc;
   
-VOID CALLBACK AsynRoutine(
+VOID CALLBACK ContentRoutine(
+                            __in  DWORD dwErrorCode,
+                            __in  DWORD dwNumberOfBytesTransfered,
+                            __in  LPOVERLAPPED lpOverlapped
+);
+
+VOID CALLBACK TitleRoutine(
                             __in  DWORD dwErrorCode,
                             __in  DWORD dwNumberOfBytesTransfered,
                             __in  LPOVERLAPPED lpOverlapped
@@ -109,7 +117,7 @@ VOID CALLBACK refresh(
                        DWORD dwTimerHighValue     // Timer high value
 );
 
-VOID CALLBACK AsynRoutine(
+VOID CALLBACK ContentRoutine(
                                 __in  DWORD dwErrorCode,
                                 __in  DWORD transferred,
                                 __in  LPOVERLAPPED lpOverlapped ) {
@@ -137,6 +145,56 @@ VOID CALLBACK AsynRoutine(
 
             //rstIterator(*pStateProperties);
         }
+                 
+
+    }
+    
+}
+
+VOID CALLBACK TitleRoutine(
+                                __in  DWORD dwErrorCode,
+                                __in  DWORD transferred,
+                                __in  LPOVERLAPPED lpOverlapped ) {
+    
+    unsigned int contentStart = 0;
+    std::string  strTmp = "";
+    //pStateProperties->width = stoi(strTmp); 
+
+    if(pStateProperties) {  //Does nothing if it's NULL
+    
+        if(transferred) {
+
+            //
+            for(int i = 0; i < BUFF_MAX; ++i){
+            
+                if(pStateProperties->height) break;
+
+                ++lpOverlapped->Offset;
+                if(buffMaze[i] == ' ' ){
+                   
+                    strTmp = "";
+                    
+                    for(++i; buffMaze[i] != ' '; ++i){
+                    
+                        ++lpOverlapped->Offset;
+                        strTmp += buffMaze[i];
+                        
+                    }
+                    --i;
+                    
+                    if(!pStateProperties->width)
+                        pStateProperties->width  = stoi(strTmp);
+                    else
+                        pStateProperties->height = stoi(strTmp);
+                        
+                }
+                       
+            }
+
+            lpOverlapped->Offset += 3;
+            //lpOverlapped->Offset = contentStart;
+        }
+
                  
 
     }
@@ -235,17 +293,19 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    lpBmp            = NULL;
    hFile            = NULL;
 
-
-   //Common::Maze::load_maze("");
+   for(int i = 0; i < BUFF_MAX; ++i) {
+        
+        tcharBuff[i]      = '\0';
+        buffMaze[i]       = '\0';
+   }
+   strBuff           = "";    
 
    pStateProperties = new (std::nothrow) StateProperties;
    ProgramProperties::initPropertiesStates( *pStateProperties );
    ProgramProperties::initPropertiesF2( *pStateProperties, BUFF_MAX );
-   //initF2Mssg( *pStateProperties, BUFF_MAX );
-   //initF2Path( *pStateProperties, BUFF_MAX );
    ProgramProperties::rstIterator( *pStateProperties ); 
    ProgramProperties::rstMv( *pStateProperties ); 
-   ProgramProperties::rstTxt( *pStateProperties ); 
+   ProgramProperties::rstDimensions( *pStateProperties ); 
 
    HWND hWnd = CreateWindowEx( 
                                 0,                      // no extended styles 
@@ -331,10 +391,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     LONG_PTR                   ptr = GetWindowLongPtr(hWnd, GWLP_USERDATA);
     StateProperties*           pStateProperties = reinterpret_cast<StateProperties*>(ptr);
 
-    TCHAR                      scroll_bar[]     = L"Scroll bar called";
-    TCHAR                      tcharBuff[ BUFF_MAX ] = { '\0' };
-    string                     strBuff          = "";
-    char                       fMaze[ MAX_LOADSTRING ] = { '\0' };
+
 
     curRc.left   = 0;
     curRc.top    = 0;
@@ -344,8 +401,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
     std::function<void()> rfScreen = [&hWnd, &curRc, &pStateProperties] () { 
 
-        curRc.left    = pStateProperties->txtL;
-        curRc.top     = pStateProperties->txtTop;
+        //curRc.left    = pStateProperties->txtL;
+        //curRc.top     = pStateProperties->txtTop;
         curRc.right   = pStateProperties->txtR;
         curRc.bottom  = pStateProperties->txtBottom;
 
@@ -364,14 +421,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     };  
    
     
-    std::function<void()> loadTcharBuff = [ &strBuff, &tcharBuff ]() {
+    std::function<void()> loadTcharBuff = []() {
         
         for ( int i = 0; i< strBuff.length(); ++i  ) tcharBuff [ i ] = strBuff [ i ];
     };
 
-    std::function<void()> read_maze = [ &fMaze, &tcharBuff ]() {
+    std::function<void()> read_maze = []() {
         
-        for ( int i = 0; i< BUFF_MAX; ++i  ) tcharBuff [ i ] = fMaze [ i ];
+        for ( int i = 0; i< BUFF_MAX; ++i  ) tcharBuff [ i ] = buffMaze [ i ];
     };
 
     std::function<void( D2D1::ColorF )> colorBrush =
@@ -396,8 +453,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
     };    
 
-
-    
     std::function<void()> clnField=[    //clean field
                                         &pStateProperties,
                                         &pRenderTarget, 
@@ -620,7 +675,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         
     };
 
-     std::function<void( )> loadTimeStrBuff=[ &strBuff]() {    
+     std::function<void( )> loadTimeStrBuff=[]() {    
 
         SYSTEMTIME local_time_obj;
         GetLocalTime(&local_time_obj);
@@ -636,10 +691,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
      std::function<void( )> loadMaze=[ 
                                        &hWnd,
-                                       &strBuff, 
-                                       &tcharBuff, 
+                                       //&strBuff, 
+                                       //&tcharBuff, 
                                        &pStateProperties,
-                                       &fMaze,
+                                       //&buffMaze,
                                        clnField, 
                                        srllScreen]() {
 
@@ -665,55 +720,90 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     }
                     
                     openFile:
+                        
+                        if ( !pStateProperties->height ){
                     
+                            hFile = CreateFile(
+                                                tcharBuff,                  // file to open
+                                                GENERIC_READ,               // open for reading
+                                                FILE_SHARE_READ,            // share for reading
+                                                NULL,                       // default security
+                                                OPEN_EXISTING,              // existing file only
+                                                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, // normal file
+                                                NULL                        // no attr. template
+                                    );                         
+
+
+                            for ( int i = 0; i < BUFF_MAX; ++i ) buffMaze [i] = '\0';
+
+                            
+                            if ( ReadFileEx( hFile, buffMaze, BUFF_MAX, &lpOverlapped, TitleRoutine)){
+
+                                SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
+                                
+                                initPropertiesF2 ( *pStateProperties, BUFF_MAX );
+
+                                for (int i=0; i<BUFF_MAX; ++i) pStateProperties->f2Mssg[i] = buffMaze[i]; 
+                                
+                                CloseHandle(hFile);         //next open will start at the offset
+
+                            }
+                            else {                   
+
+                                initPropertiesF2 ( *pStateProperties, BUFF_MAX );
+                                CloseHandle(hFile);    
+                            }
+                            
+                        }
+                        
                         hFile = CreateFile(
-                                            tcharBuff,                  // file to open
-                                            GENERIC_READ,               // open for reading
-                                            FILE_SHARE_READ,            // share for reading
-                                            NULL,                       // default security
-                                            OPEN_EXISTING,              // existing file only
-                                            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, // normal file
-                                            NULL                        // no attr. template
+                                            tcharBuff,                  
+                                            GENERIC_READ,               
+                                            FILE_SHARE_READ,           
+                                            NULL,                       
+                                            OPEN_EXISTING,              
+                                            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, 
+                                            NULL                        
                                 );            
 
-                    for ( int i = 0; i < MAX_LOADSTRING; ++i ) fMaze [i] = '\0';
+                        for ( int i = 0; i < BUFF_MAX; ++i ) buffMaze [i] = '\0';
 
-                    if ( ReadFileEx( hFile, fMaze, MAX_MAZE_WIDTH, &lpOverlapped, AsynRoutine)){
+                        if ( ReadFileEx( hFile, buffMaze, MAX_MAZE_WIDTH, &lpOverlapped, ContentRoutine)){
 
-                        SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
-                        initPropertiesF2 ( *pStateProperties, BUFF_MAX );
+                            SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
+                            ProgramProperties::initPropertiesF2 ( *pStateProperties, BUFF_MAX );
 
-                        for (int i=0; i<MAX_MAZE_WIDTH; ++i) pStateProperties->f2Mssg[i] = fMaze[i]; 
+                            for (int i=0; i<MAX_MAZE_WIDTH; ++i) pStateProperties->f2Mssg[i] = buffMaze[i]; 
 
-                        CloseHandle(hFile);         //next open will start at the offset
+                            CloseHandle(hFile);         //next open will start at the offset
 
-                        //Cuz BitBlt scans from the bottom, stores the content in a reverse order
-                        for ( int i = 0; i < MAX_MAZE_WIDTH; ++i )
-                            Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][i] = 
-                                pStateProperties->f2Mssg[i] == '1' 
-                                                            ?
-                                                            1
-                                                            :
-                                                            0;
+                            //Cuz BitBlt scans from the bottom, stores the content in a reverse order
+                            for ( int i = 0; i < MAX_MAZE_WIDTH; ++i )
+                                Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][i] = 
+                                    pStateProperties->f2Mssg[i] == '1' 
+                                                                ?
+                                                                1
+                                                                :
+                                                                0;
 
-                        //Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][MAX_MAZE_WIDTH-1] = 1;
-                    }
-                    else {                   
+                            //Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][MAX_MAZE_WIDTH-1] = 1;
+                        }
+                        else {                   
 
-                        initPropertiesF2 ( *pStateProperties, BUFF_MAX );
-                        //initF2Mssg( *pStateProperties, BUFF_MAX );
-                        //initF2Path( *pStateProperties, BUFF_MAX );
-                        CloseHandle(hFile);    
-                    }
+                            ProgramProperties::initPropertiesF2 ( *pStateProperties, BUFF_MAX );
+                            //initF2Mssg( *pStateProperties, BUFF_MAX );
+                            //initF2Path( *pStateProperties, BUFF_MAX );
+                            CloseHandle(hFile);    
+                        }
                     
      };
      
      std::function<void( )> outMaze=[ 
                                        &hWnd,
-                                       &strBuff, 
-                                       &tcharBuff, 
+                                       //&strBuff, 
+                                       //&tcharBuff, 
                                        &pStateProperties,
-                                       &fMaze,
+                                       //&buffMaze,
                                        clnField, 
                                        srllScreen
                             ]() {
@@ -752,7 +842,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                             NULL                        // no attr. template
                         );            
 
-                    for ( int i = 0; i < BUFF_MAX; ++i ) fMaze [i] = '\0';
+                    for ( int i = 0; i < BUFF_MAX; ++i ) buffMaze [i] = '\0';
 
                     if ( WriteFile( hFile, (LPSTR)lpBmp, dwBmpSize, NULL, &lpOverlapped)){
 
@@ -761,7 +851,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     }
                     else {                   
 
-                        initPropertiesF2 ( *pStateProperties, BUFF_MAX );
+                        ProgramProperties::initPropertiesF2 ( *pStateProperties, BUFF_MAX );
                         //initF2Mssg( *pStateProperties, BUFF_MAX );
                         //initF2Path( *pStateProperties, BUFF_MAX );
                         CloseHandle(hFile);    
@@ -854,15 +944,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             );
 
             hdc = BeginPaint(hWnd, &ps );            
-            /*
-
-            setBitmap( 
-                std::complex<int>(200, rc.bottom + 0), 
-                std::complex<int>(200, rc.bottom + 50), 
-                std::complex<int>(175, rc.bottom + 25), 
-                std::complex<int>(225, rc.bottom + 25) 
-            );
-            */
 
             setBitmap( 
                         std::complex<int>(rc.right, rc.bottom + 0), 
@@ -877,7 +958,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         std::complex<int>(25, 75), 
                         std::complex<int>(75, 75) 
             );
-            
+            /*
             loadTimeStrBuff();
             loadTcharBuff();          
             TextOut(hdc,0, 50, tcharBuff, strBuff.length() );
@@ -912,11 +993,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     tcharBuff, 
                     strBuff.length()
             );
-
+            */
             DeleteDC(hdc);
             hdc = NULL;
             EndPaint(hWnd, &ps );
-
 
             pStateProperties->started = false;
 
@@ -1085,7 +1165,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         pStateProperties->started = true;
 
                     
-                        initPropertiesF2 ( *pStateProperties, BUFF_MAX );
+                        ProgramProperties::initPropertiesF2 ( *pStateProperties, BUFF_MAX );
                         //initF2Mssg( *pStateProperties, BUFF_MAX );
                         //initF2Path( *pStateProperties, BUFF_MAX );
                         GetCurrentDirectory( BUFF_MAX, tcharBuff );
@@ -1113,7 +1193,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 case VK_F4: {               
                     
                     pStateProperties->isF4 = true;
-                    rstIterator( *pStateProperties );
+                    ProgramProperties::rstIterator( *pStateProperties );
                     InvalidateRect( hWnd, NULL, TRUE);
                     UpdateWindow( hWnd );
 
