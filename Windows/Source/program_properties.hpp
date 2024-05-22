@@ -1,6 +1,3 @@
-#ifndef program_properties_hpp
-#define program_properties_hpp
-
 #include "pch.h"
 #include "framework.h"
 #include "bsp_maze.h"
@@ -39,48 +36,56 @@
 #include <mutex>  
 #include <cstdlib>
 #include <fstream>
-#include <d2d1.h>
 
-#pragma comment(lib, "d2d1")
+#include "program_properties.hpp";
 
-using namespace std;
-//using namespace ProgramProperties;
+using namespace ProgramProperties;
 
-namespace ProgramProperties{
+namespace ProgramProperties {
 
-	struct StateProperties {
+    //initialize states 
+    static void initPropertiesStates ( StateProperties& pStateProperties ) { 
+        
+        pStateProperties.cleaned   = false;
+        pStateProperties.isF4      = false;
+        pStateProperties.f2End     = false;
+        pStateProperties.path2long = false;
+        pStateProperties.started   = false;
+        pStateProperties.isRender  = false;
+        pStateProperties.closeIt   = false;
+    }
 
-		public:
+    //intialize string content
+    static void initPropertiesF2 ( StateProperties& pStateProperties, int size ) {  
 
-			bool    started;
-			bool	isRender;
-			bool	isF4;
-			bool	f2End;
-			bool	cleaned;
-			bool	path2long;
-			bool	closeIt;
+        pStateProperties.f2Mssg = '\0';  
+        pStateProperties.f2path = '\0'; 
 
-			string	f2Mssg;  //F2 content
-			string  f2path;
+        for ( int i = 0; i< size - 1; ++i  ) { 
+        
+            pStateProperties.f2Mssg += '\0';
+            pStateProperties.f2path += '\0';
+        }    
 
-			int     width;
-			int	    height;
-			int     txtR;
-			int     txtBottom;
+    };
 
-			int		mvX;  //x-axis movement
-			int		mvY;  //y-axis movement
+    static void rstIterator ( StateProperties& pStateProperties ) { 
 
-			unsigned int itrCounts;
-	};
+        pStateProperties.itrCounts = 0;
+    }
 
-	static void initPropertiesStates ( StateProperties& pStateProperties );
-	static void initPropertiesF2 ( StateProperties& pStateProperties, int size );
-	static void rstIterator ( StateProperties& pStateProperties);
-	static void rstMv ( StateProperties& pStateProperties);
-	static void rstDimensions ( StateProperties& pStateProperties);
+    static void rstMv ( StateProperties& pStateProperties ) { 
+
+        pStateProperties.mvX = 0;
+        pStateProperties.mvY = 0;
+    }
+
+    static void rstDimensions ( StateProperties& pStateProperties ) { 
+        
+        pStateProperties.width      = 0;
+        pStateProperties.height     = 0;
+        pStateProperties.txtR      = 1;
+        pStateProperties.txtBottom = 1; 
+
+    }
 }
-
-
-
-#endif
