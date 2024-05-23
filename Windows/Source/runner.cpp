@@ -48,8 +48,8 @@
 #include "components.hpp"
 #include "program_properties.cpp"
 
-#define BUFF_MAX        256
-#define MAX_MAZE_WIDTH  140  
+#define BUFF_MAX        1024
+#define MAX_MAZE_WIDTH  211  
 #define DWORD_MAX       4294967295 
 
 #define _USE_MATH_DEFINES
@@ -156,7 +156,6 @@ VOID CALLBACK TitleRoutine(
                                 __in  DWORD transferred,
                                 __in  LPOVERLAPPED lpOverlapped ) {
     
-    unsigned int contentStart = 0;
     std::string  strTmp = "";
     //pStateProperties->width = stoi(strTmp); 
 
@@ -165,7 +164,7 @@ VOID CALLBACK TitleRoutine(
         if(transferred) {
 
             //
-            for(int i = 0; i < BUFF_MAX; ++i){
+            for(int i = 0; i < MAX_MAZE_WIDTH; ++i){
             
                 if(pStateProperties->height) break;
 
@@ -516,7 +515,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         */
         
         for(int i = 0; i < rc.bottom/10; ++i)
-            for(int j = 0; j < MAX_MAZE_WIDTH; ++j){
+            for(int j = 0; j < rc.right/10; ++j){
             
                 set_rectangle_location( 
                                         j*10, 
@@ -526,7 +525,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 );                
 
 
-                if( Common::Maze::maze[i + pStateProperties->verticalPg*rc.bottom/10 ][j] ){
+                if( Common::Maze::maze[i + pStateProperties->verticalPg*rc.bottom/10 ][j + pStateProperties->horizontalPg*rc.right/10 ] ){
                 
                     pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Black ), &pBrush );
 
@@ -644,13 +643,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             for ( int i = 0; i < BUFF_MAX; ++i ) buffMaze [i] = '\0';
 
                             
-                            if ( ReadFileEx( hFile, buffMaze, BUFF_MAX-1, &lpOverlapped, TitleRoutine)){
+                            if ( ReadFileEx( hFile, buffMaze, MAX_MAZE_WIDTH, &lpOverlapped, TitleRoutine)){
 
                                 SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
                                 
                                 initPropertiesF2 ( *pStateProperties, BUFF_MAX );
 
-                                for (int i=0; i<BUFF_MAX; ++i) pStateProperties->f2Mssg[i] = buffMaze[i]; 
+                                for (int i=0; i<MAX_MAZE_WIDTH; ++i) pStateProperties->f2Mssg[i] = buffMaze[i]; 
                                 
                                 CloseHandle(hFile);         //next open will start at the offset
 
@@ -693,13 +692,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                                 :
                                                                 0;
 
-                            //Common::Maze::maze[ rc.bottom/10 - pStateProperties->itrCounts - 1 ][MAX_MAZE_WIDTH-1] = 1;
                         }
                         else {                   
 
                             ProgramProperties::initPropertiesF2 ( *pStateProperties, BUFF_MAX );
-                            //initF2Mssg( *pStateProperties, BUFF_MAX );
-                            //initF2Path( *pStateProperties, BUFF_MAX );
                             CloseHandle(hFile);    
                         }
                     
@@ -759,8 +755,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     else {                   
 
                         ProgramProperties::initPropertiesF2 ( *pStateProperties, BUFF_MAX );
-                        //initF2Mssg( *pStateProperties, BUFF_MAX );
-                        //initF2Path( *pStateProperties, BUFF_MAX );
                         CloseHandle(hFile);    
                     }
                     
@@ -865,7 +859,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         std::complex<int>(25, 75), 
                         std::complex<int>(75, 75) 
             );
-            /*
+            
             strBuff = "rc.bottom/10:  ";
             strBuff += std::to_string( rc.bottom/10  );
             loadTcharBuff();          
@@ -876,19 +870,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             loadTcharBuff();          
             TextOut(hdc,350, 270 , tcharBuff, strBuff.length() ); 
 
+            strBuff = "pStateProperties->width:  ";
+            strBuff += std::to_string( pStateProperties->width );
+            loadTcharBuff();          
+            TextOut(hdc,750, 270 , tcharBuff, strBuff.length() ); 
+
             strBuff = "pStateProperties->height:  ";
             strBuff += std::to_string( pStateProperties->height );
             loadTcharBuff();          
-            TextOut(hdc,950, 270 , tcharBuff, strBuff.length() ); 
-
-            loadTimeStrBuff();
-            loadTcharBuff();          
-            TextOut(hdc,0, 50, tcharBuff, strBuff.length() );
-            
-
-
-
-
+            TextOut(hdc,1050, 270 , tcharBuff, strBuff.length() ); 
+            /*
             strBuff = std::to_string( lpOverlapped.Offset );
             //strBuff = std::to_string( pMaze->GetPixelFormat().format );
             loadTcharBuff();          
@@ -1000,7 +991,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_UP:{
 
-                    pStateProperties->verticalPg = pStateProperties->verticalPg < 1+pStateProperties->height/rc.bottom 
+                    pStateProperties->verticalPg = pStateProperties->verticalPg < 1+pStateProperties->height/rc.bottom/10 
                                                                     ?
                                                                     ++pStateProperties->verticalPg
                                                                     :
@@ -1030,7 +1021,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_RIGHT:{
 
-                    pStateProperties->horizontalPg = pStateProperties->horizontalPg < 1+pStateProperties->height/rc.right 
+                    pStateProperties->horizontalPg = pStateProperties->horizontalPg < 1+pStateProperties->width/rc.right/10 
                                                                     ?
                                                                     ++pStateProperties->horizontalPg
                                                                     :
@@ -1160,6 +1151,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         pStateProperties->started = true;
 
                         pStateProperties->started = false;
+
+                        ProgramProperties::rstIterator(*pStateProperties);
+                        lpOverlapped = {0};
                         InvalidateRect( hWnd, NULL, TRUE );
                         UpdateWindow( hWnd );
 
