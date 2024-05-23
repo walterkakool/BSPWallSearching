@@ -82,10 +82,10 @@ namespace ProgramProperties {
 
     static void rstDimensions ( StateProperties& pStateProperties ) { 
         
-        pStateProperties.width      = 0;
-        pStateProperties.height     = 0;
-        pStateProperties.upX        = 0;
-        pStateProperties.upY        = 0; 
+        pStateProperties.width             = 0;
+        pStateProperties.height            = 0;
+        pStateProperties.verticalPg        = 0;
+        pStateProperties.horizontalPg      = 0; 
 
     }
 }
