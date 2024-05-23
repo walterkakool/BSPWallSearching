@@ -48,7 +48,7 @@
 #include "components.hpp"
 #include "program_properties.cpp"
 
-#define BUFF_MAX        1024
+#define BUFF_MAX        256
 #define MAX_MAZE_WIDTH  211  
 #define DWORD_MAX       4294967295 
 
@@ -98,7 +98,9 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 HANDLE              hFile;
 OVERLAPPED          lpOverlapped;
 RECT                rc;
-  
+
+void clnBuffs(TCHAR tcharBuff[], char buffMaze[], string &strBuff );
+
 VOID CALLBACK ContentRoutine(
                             __in  DWORD dwErrorCode,
                             __in  DWORD dwNumberOfBytesTransfered,
@@ -116,6 +118,16 @@ VOID CALLBACK refresh(
                        DWORD dwTimerLowValue,      // Timer low value
                        DWORD dwTimerHighValue     // Timer high value
 );
+
+void clnBuffs( TCHAR tcharBuff[], char buffMaze[], string &strBuff  ) {
+
+   for(int i = 0; i < BUFF_MAX; ++i)        
+        tcharBuff[i], buffMaze[i] = '\0';
+
+   strBuff = '\0';
+   for(int i = 0; i < BUFF_MAX; ++i) strBuff += '\0';
+   
+}
 
 VOID CALLBACK ContentRoutine(
                                 __in  DWORD dwErrorCode,
@@ -191,6 +203,7 @@ VOID CALLBACK TitleRoutine(
             }
 
             lpOverlapped->Offset += 3;
+            pStateProperties->mazeStart = lpOverlapped->Offset;
             //lpOverlapped->Offset = contentStart;
         }
 
@@ -292,17 +305,21 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    lpBmp            = NULL;
    hFile            = NULL;
 
-   for(int i = 0; i < BUFF_MAX; ++i) {
-        
-        tcharBuff[i]      = '\0';
-        buffMaze[i]       = '\0';
+   clnBuffs( tcharBuff, buffMaze, strBuff );
+   /*
+   for(int i = 0; i < 10240; ++i) {
+        for(int j = 0; j < 10240; ++j) {
+            
+            Common::Maze::maze[i][j] = 0;
+        }
+   
    }
-   strBuff           = "";    
-
+   */
    pStateProperties = new (std::nothrow) StateProperties;
    ProgramProperties::initPropertiesStates( *pStateProperties );
    ProgramProperties::initPropertiesF2( *pStateProperties, BUFF_MAX );
    ProgramProperties::rstIterator( *pStateProperties ); 
+   ProgramProperties::rstMazeStart( *pStateProperties );
    ProgramProperties::rstMv( *pStateProperties ); 
    ProgramProperties::rstDimensions( *pStateProperties ); 
 
@@ -603,7 +620,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                        //&buffMaze,
                                        clnField, 
                                        srllScreen]() {
-
+                    
                     for ( int i = 0; 1; ++i ) {
 
                         tcharBuff [i] = pStateProperties->f2path [i];
@@ -661,6 +678,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             }
                             
                         }
+                        else if(!pStateProperties->itrCounts)
+                            lpOverlapped.Offset = pStateProperties->mazeStart;
                         
                         hFile = CreateFile(
                                             tcharBuff,                  
@@ -807,9 +826,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         case WM_PAINT: {  //For printing context
              
-            if( hDIB && !pStateProperties->isF4 ){
+            if( hDIB && !pStateProperties->isF5 ){
             
-                pStateProperties->isF4 = false;
+                pStateProperties->isF5 = false;
 
                 GlobalUnlock(hDIB);
                 GlobalFree(hDIB);
@@ -817,9 +836,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 hDIB = NULL;
             }
 
-            if( pStateProperties->isF4 ){
+            if( pStateProperties->isF5 ){
             
-                pStateProperties->isF4 = false;
+                pStateProperties->isF5 = false;
                 break;
             }
                 
@@ -865,6 +884,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             loadTcharBuff();          
             TextOut(hdc,100, 270 , tcharBuff, strBuff.length() ); 
 
+            strBuff = "mvX:  ";
+            strBuff += std::to_string( pStateProperties->mvX  );
+            loadTcharBuff();          
+            TextOut(hdc,100, 370 , tcharBuff, strBuff.length() ); 
+
+            strBuff = "mvY:  ";
+            strBuff += std::to_string( pStateProperties->mvY  );
+            loadTcharBuff();          
+            TextOut(hdc,250, 370 , tcharBuff, strBuff.length() ); 
+
             strBuff = "pStateProperties->itrCounts:  ";
             strBuff += std::to_string( pStateProperties->itrCounts );
             loadTcharBuff();          
@@ -879,6 +908,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             strBuff += std::to_string( pStateProperties->height );
             loadTcharBuff();          
             TextOut(hdc,1050, 270 , tcharBuff, strBuff.length() ); 
+
             /*
             strBuff = std::to_string( lpOverlapped.Offset );
             //strBuff = std::to_string( pMaze->GetPixelFormat().format );
@@ -977,7 +1007,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         case WM_VSCROLL: {
 
-            srllScreen();
+            //srllScreen();
 
             break;
         }
@@ -991,45 +1021,69 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_UP:{
 
-                    pStateProperties->verticalPg = pStateProperties->verticalPg < 1+pStateProperties->height/rc.bottom/10 
+                    if(pStateProperties->started) goto doneUp;
+                    pStateProperties->started = true;
+
+                    pStateProperties->verticalPg = pStateProperties->verticalPg < 3 * (1+pStateProperties->height/rc.bottom/10) 
                                                                     ?
                                                                     ++pStateProperties->verticalPg
                                                                     :
                                                                     pStateProperties->verticalPg;
+
+                    pStateProperties->started = false;
+                    goto refresh;
                     break;
                 }
 
                 case VK_DOWN:{
+
+                    if(pStateProperties->started) goto doneDown;
+                    pStateProperties->started = true;
 
                     pStateProperties->verticalPg = pStateProperties->verticalPg
                                                                     ?
                                                                     --pStateProperties->verticalPg
                                                                     :
                                                                     0;
+                    pStateProperties->started = false;
+                    goto refresh;
                     break;
                 }
 
                 case VK_LEFT:{
+
+                    if(pStateProperties->started) goto doneLeft;
+                    pStateProperties->started = true;
 
                     pStateProperties->horizontalPg = pStateProperties->horizontalPg
                                                                     ?
                                                                     --pStateProperties->horizontalPg
                                                                     :
                                                                     0;
+
+                    pStateProperties->started = false;
+                    goto refresh;
                     break;
                 }
 
                 case VK_RIGHT:{
 
-                    pStateProperties->horizontalPg = pStateProperties->horizontalPg < 1+pStateProperties->width/rc.right/10 
+                    if(pStateProperties->started) goto doneRight;
+                    pStateProperties->started = true;
+
+                    pStateProperties->horizontalPg = pStateProperties->horizontalPg < 3 * (1+pStateProperties->width/rc.right/10) 
                                                                     ?
                                                                     ++pStateProperties->horizontalPg
                                                                     :
                                                                     pStateProperties->horizontalPg;
+
+                    pStateProperties->started = false;
+                    goto refresh;
                     break;
                 }
 
             }
+            break;
         }
 
         case WM_KEYDOWN:{
@@ -1044,13 +1098,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneUp;
 
                         pStateProperties->started = true;
+
                         pStateProperties->mvY -= 10;
                     
-       
-
                         pStateProperties->started = false;
-                        InvalidateRect( hWnd, NULL, TRUE );
-                        UpdateWindow( hWnd );
+                        goto refresh;
 
                     doneUp:
                         break;                
@@ -1061,13 +1113,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneDown;
 
                         pStateProperties->started = true;
+
                         pStateProperties->mvY += 10;
 
-         
-
                         pStateProperties->started = false;
-                        InvalidateRect( hWnd, NULL, TRUE );
-                        UpdateWindow( hWnd );
+                        goto refresh;
 
                     doneDown:
                         break;
@@ -1079,13 +1129,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneLeft;
 
                         pStateProperties->started = true;
+
                         pStateProperties->mvX -= 10;
 
-
-
                         pStateProperties->started = false;
-                        InvalidateRect( hWnd, NULL, TRUE );
-                        UpdateWindow( hWnd );
+                        goto refresh;
 
                     doneLeft:
                         break;                
@@ -1096,14 +1144,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneRight;
 
                         pStateProperties->started = true;
+
                         pStateProperties->mvX += 10;
 
-
                         pStateProperties->started = false;
-                        InvalidateRect( hWnd, NULL, TRUE );
-                        UpdateWindow( hWnd );
+                        goto refresh;
 
                     doneRight:
+
                         break;                
                 }
 
@@ -1116,18 +1164,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         pStateProperties->started = true;
 
-                    
                         ProgramProperties::initPropertiesF2 ( *pStateProperties, BUFF_MAX );
-                        //initF2Mssg( *pStateProperties, BUFF_MAX );
-                        //initF2Path( *pStateProperties, BUFF_MAX );
-                        GetCurrentDirectory( BUFF_MAX, tcharBuff );
+                        GetCurrentDirectory( MAX_MAZE_WIDTH, tcharBuff );
 
                         for ( int i = 0; i< BUFF_MAX; ++i  ) 
                             pStateProperties->f2path [i] = tcharBuff [i];
 
-                        strBuff = "\\maze.pnm";   
+                        //clnBuffs( tcharBuff, buffMaze, strBuff );
+                        strBuff = "\\maze.pnm";
+                        //ProgramProperties::initPropertiesF2( *pStateProperties, BUFF_MAX );
                         loadMaze();
-                        //rstTxt(*pStateProperties);
                         pStateProperties->started = false;
 
                         if(pStateProperties->f2Mssg[0])
@@ -1136,26 +1182,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                       
                         
                     doneF2:
-                        //InvalidateRect(hWnd,NULL,TRUE);
-                        //UpdateWindow( hWnd );
+
                         if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
                             SendMessage( hWnd, WM_KEYDOWN, VK_F2, lParam );
+                        else
+                            goto refresh;
+
                         break;                
                 }
 
                 
                 case VK_F5: {               
                     
-                    if(pStateProperties->started) goto doneF5;
+                    refresh:
 
-                        pStateProperties->started = true;
+                        if(pStateProperties->started) goto doneF5;
 
-                        pStateProperties->started = false;
+                            pStateProperties->started = true;
 
-                        ProgramProperties::rstIterator(*pStateProperties);
-                        lpOverlapped = {0};
-                        InvalidateRect( hWnd, NULL, TRUE );
-                        UpdateWindow( hWnd );
+                            ProgramProperties::rstIterator(*pStateProperties);
+                            lpOverlapped = {0}; 
+
+                            pStateProperties->started = false;
+                            pStateProperties->isF5    = true;
+                            InvalidateRect( hWnd, NULL, TRUE );
+                            UpdateWindow( hWnd );
 
                     doneF5:
                         break;  
@@ -1246,8 +1297,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 }
 
             }
-
             break;
+
         }        
 
         case WM_DESTROY: {
