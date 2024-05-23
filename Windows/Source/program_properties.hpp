@@ -64,11 +64,11 @@ namespace ProgramProperties{
 			string  f2path;
 			
 			//Maze's total width and height
-			int     width;
-			int	    height;
-			//current sub-maze upper left x-y
-			int     upX;
-			int     upY;
+			unsigned int width;
+			unsigned int height;
+
+			unsigned int verticalPg;   //Vertical page index for screen-scrolling
+			unsigned int horizontalPg; //Horizontal page index for screen-scrolling
 
 			int		mvX;  //x-axis movement
 			int		mvY;  //y-axis movement
