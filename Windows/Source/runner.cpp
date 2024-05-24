@@ -844,6 +844,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         case WM_PAINT: {  //For printing context
              
+            if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) {
+            
+                SendMessage( hWnd, WM_KEYDOWN, VK_F2, lParam );
+                break;
+            }
+            
+
             if( hDIB && !pStateProperties->isF5 ){
             
                 pStateProperties->isF5 = false;
@@ -1203,6 +1210,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         if(pStateProperties->f2Mssg[0]){
                         
                             ++pStateProperties->itrCounts;
+                            InvalidateRect( hWnd, NULL, TRUE );
+                            UpdateWindow( hWnd );
                             /*
                             if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
                                 SendMessage( hWnd, WM_KEYDOWN, VK_F2, lParam );
