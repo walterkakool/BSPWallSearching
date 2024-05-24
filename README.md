@@ -27,5 +27,5 @@ the functionality of maze scrolling.
 `F2`-----------------------current dir has maze.pnm ? prints the contents : "No input file.";\
 `F5`-----------------------cleans all;\
 ~~`Clicking_vertical_bar`-prints the message;~~\
-~~`TAB`----------------------render 4 walls.~~
+~~`TAB`----------------------render 4 walls.~~\
 `Alt+↑↓→←`--------------Scrolls screen
