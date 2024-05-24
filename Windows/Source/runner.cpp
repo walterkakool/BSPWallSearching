@@ -48,7 +48,7 @@
 #include "components.hpp"
 #include "program_properties.cpp"
 
-#define BUFF_MAX        256
+#define BUFF_MAX        1024
 #define MAX_MAZE_WIDTH  211  
 #define DWORD_MAX       4294967295 
 
@@ -75,14 +75,15 @@ std::complex<int> Location::point(0, 0);
 
 
 // Global Variables:
-HINSTANCE        hInst;                                // current instance
-WCHAR            szTitle[BUFF_MAX];                  // The title bar text
-WCHAR            szWindowClass[BUFF_MAX];            // the main window class name
-StateProperties* pStateProperties;
-HANDLE           hDIB;
-char*            lpBmp;
-BITMAPINFOHEADER bi;
-DWORD            dwBmpSize;
+HINSTANCE           hInst;                                // current instance
+WCHAR               szTitle[BUFF_MAX];                  // The title bar text
+WCHAR               szWindowClass[BUFF_MAX];            // the main window class name
+StateProperties*    pStateProperties;
+HANDLE              hDIB;
+char*               lpBmp;
+BITMAPINFOHEADER    bi;
+DWORD               dwBmpSize;
+CRITICAL_SECTION    crtSec;
 
 TCHAR                      tcharBuff[BUFF_MAX]      = { '\0' };
 char                       buffMaze[BUFF_MAX]       = { '\0' };
@@ -322,6 +323,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    ProgramProperties::rstMazeStart( *pStateProperties );
    ProgramProperties::rstMv( *pStateProperties ); 
    ProgramProperties::rstDimensions( *pStateProperties ); 
+
+   InitializeCriticalSection(&crtSec);
 
    HWND hWnd = CreateWindowEx( 
                                 0,                      // no extended styles 
@@ -643,7 +646,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     }
                     
                     openFile:
-                        
+
                         if ( !pStateProperties->height ){
                     
                             hFile = CreateFile(
@@ -662,7 +665,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             
                             if ( ReadFileEx( hFile, buffMaze, MAX_MAZE_WIDTH, &lpOverlapped, TitleRoutine)){
 
-                                SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
+                                try{
+                                SleepEx(INFINITE, TRUE); //Sleep for AsynRoutine
+                                }
+                                catch(exception& e){
+                        
+                                }
                                 
                                 initPropertiesF2 ( *pStateProperties, BUFF_MAX );
 
@@ -695,7 +703,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         if ( ReadFileEx( hFile, buffMaze, MAX_MAZE_WIDTH, &lpOverlapped, ContentRoutine)){
 
-                            SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
+                            try{
+                            SleepEx(INFINITE, TRUE); //Sleep for AsynRoutine
+                            }
+                            catch(exception& e){
+                        
+                            }
                             ProgramProperties::initPropertiesF2 ( *pStateProperties, BUFF_MAX );
 
                             for (int i=0; i<MAX_MAZE_WIDTH; ++i) pStateProperties->f2Mssg[i] = buffMaze[i]; 
@@ -717,6 +730,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             ProgramProperties::initPropertiesF2 ( *pStateProperties, BUFF_MAX );
                             CloseHandle(hFile);    
                         }
+                        
                     
      };
      
@@ -767,8 +781,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     for ( int i = 0; i < BUFF_MAX; ++i ) buffMaze [i] = '\0';
 
                     if ( WriteFile( hFile, (LPSTR)lpBmp, dwBmpSize, NULL, &lpOverlapped)){
-
-                        SleepEx(INFINITE, TRUE);    //Sleep for AsynRoutine
+                        try{
+                        SleepEx(INFINITE, TRUE); //Sleep for AsynRoutine
+                        }
+                        catch(exception& e){
+                        
+                        }
                         CloseHandle(hFile);         //next open will start at the offset
                     }
                     else {                   
@@ -803,7 +821,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     
                         DestroyWindow(hWnd);
                         delete(pStateProperties);
-
+                        DeleteCriticalSection(&crtSec);
                         break;                    
                     }
 
@@ -1024,7 +1042,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneUp;
                     pStateProperties->started = true;
 
-                    pStateProperties->verticalPg = pStateProperties->verticalPg < 3 * (1+pStateProperties->height/rc.bottom/10) 
+                    pStateProperties->verticalPg = pStateProperties->verticalPg < pStateProperties->height/(rc.bottom/10)+1 
                                                                     ?
                                                                     ++pStateProperties->verticalPg
                                                                     :
@@ -1071,7 +1089,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if(pStateProperties->started) goto doneRight;
                     pStateProperties->started = true;
 
-                    pStateProperties->horizontalPg = pStateProperties->horizontalPg < 3 * (1+pStateProperties->width/rc.right/10) 
+                    pStateProperties->horizontalPg = pStateProperties->horizontalPg < pStateProperties->width/(rc.right/10)+1 
                                                                     ?
                                                                     ++pStateProperties->horizontalPg
                                                                     :
@@ -1160,9 +1178,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 
                     loadF2:
 
-                        if(pStateProperties->started) goto doneF2;
+                        //if(pStateProperties->started) goto doneF2;
 
-                        pStateProperties->started = true;
+                        //pStateProperties->started = true;
 
                         ProgramProperties::initPropertiesF2 ( *pStateProperties, BUFF_MAX );
                         GetCurrentDirectory( MAX_MAZE_WIDTH, tcharBuff );
@@ -1173,21 +1191,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         //clnBuffs( tcharBuff, buffMaze, strBuff );
                         strBuff = "\\maze.pnm";
                         //ProgramProperties::initPropertiesF2( *pStateProperties, BUFF_MAX );
-                        loadMaze();
-                        pStateProperties->started = false;
+                        if(TryEnterCriticalSection(&crtSec) ){
 
-                        if(pStateProperties->f2Mssg[0])
-                            ++pStateProperties->itrCounts;   
+                            loadMaze();
+                            LeaveCriticalSection(&crtSec);
+                        }
                         
-                      
+                        //pStateProperties->started = false;
                         
+
+                        if(pStateProperties->f2Mssg[0]){
+                        
+                            ++pStateProperties->itrCounts;
+                            /*
+                            if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
+                                SendMessage( hWnd, WM_KEYDOWN, VK_F2, lParam );
+                            else
+                                goto refresh;
+                            */
+                        }
+
                     doneF2:
-
-                        if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
-                            SendMessage( hWnd, WM_KEYDOWN, VK_F2, lParam );
-                        else
-                            goto refresh;
-
+                            
+                            if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
+                                break;
+                            else
+                                goto refresh;                        
+                            
                         break;                
                 }
 
@@ -1305,7 +1335,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         
             PostQuitMessage(0);
             delete(pStateProperties);
-
+            DeleteCriticalSection(&crtSec);
             break;        
         }
 
