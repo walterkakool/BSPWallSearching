@@ -114,12 +114,6 @@ VOID CALLBACK TitleRoutine(
                             __in  LPOVERLAPPED lpOverlapped
 );
 
-VOID CALLBACK refresh(
-                       LPVOID lpArg,               // Data value
-                       DWORD dwTimerLowValue,      // Timer low value
-                       DWORD dwTimerHighValue     // Timer high value
-);
-
 void clnBuffs( TCHAR tcharBuff[], char buffMaze[], string &strBuff  ) {
 
    for(int i = 0; i < BUFF_MAX; ++i)        
@@ -211,14 +205,6 @@ VOID CALLBACK TitleRoutine(
                  
 
     }
-    
-}
-
-VOID CALLBACK refresh(
-                       LPVOID lpArg,               // Data value
-                       DWORD dwTimerLowValue,      // Timer low value
-                       DWORD dwTimerHighValue) {     // Timer high value
-
     
 }
 
@@ -404,25 +390,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     LONG_PTR                   ptr = GetWindowLongPtr(hWnd, GWLP_USERDATA);
     StateProperties*           pStateProperties = reinterpret_cast<StateProperties*>(ptr);
 
-
-
     curRc.left   = 0;
     curRc.top    = 0;
     curRc.right  = 0;
     curRc.bottom = 0;
-
-
-    std::function<void()> rfScreen = [&hWnd, &curRc, &pStateProperties] () { 
-
-        //curRc.left    = pStateProperties->txtL;
-        //curRc.top     = pStateProperties->txtTop;
-        //curRc.right   = pStateProperties->txtR;
-        //curRc.bottom  = pStateProperties->txtBottom;
-
-        //InvalidateRect( hWnd, &curRc, TRUE);
-        InvalidateRect( hWnd, NULL, TRUE);
-        UpdateWindow( hWnd );
-    };
 
     std::function<void(int,int,int,int)> set_rectangle_location=[&rectangle]( 
                                                                               int left, 
@@ -562,33 +533,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         pBitmapRenderTarget->GetBitmap(&pMaze);
     };
 
-    std::function<void( std::complex<int>,std::complex<int>, std::complex<int>,std::complex<int> )> 
-        render4walls = [ 
-                        &pStateProperties,
-                        &pRenderTarget, 
-                        &rectangle, 
-                        &pBrush, 
-                        &pMaze,
-                        &set_rectangle_location, 
-                        &colorBrush,
-                        &hWnd,
-                        &fullRc,
-                        &paint_sz,
-                        &pFactory] ( 
-                                    std::complex<int> n, 
-                                    std::complex<int> s, 
-                                    std::complex<int> w, 
-                                    std::complex<int> e ) {         
+    std::function<void( std::complex<int> )> renderWalls = [ 
+                                                            &pStateProperties,
+                                                            &pRenderTarget, 
+                                                            &rectangle, 
+                                                            &pBrush, 
+                                                            &pMaze,
+                                                            &set_rectangle_location, 
+                                                            &colorBrush,
+                                                            &hWnd,
+                                                            &fullRc,
+                                                            &paint_sz,
+                                                            &pFactory] ( std::complex<int> location ) {         
 
         pRenderTarget->BeginDraw();
         pRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
-        /*
-        pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation( 
-                                                                    pStateProperties->mvX,
-                                                                    pStateProperties->mvY                   
-                                     )
-        );
-        */
+
         pRenderTarget->DrawBitmap(
                                 pMaze,
                                 D2D1::RectF(rc.left, rc.top, rc.right, rc.bottom),
@@ -596,6 +556,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                 D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
 
         );
+
+        if( pStateProperties->isLocation ){
+        
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation( 
+                                                                        pStateProperties->mvX,
+                                                                        pStateProperties->mvY                   
+                                         )
+            );
+
+            pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Purple ), &pBrush );
+
+            set_rectangle_location( 
+                                    location.real(), 
+                                    location.imag()+5, 
+                                    location.real() + 10, 
+                                    location.imag()+5 + 10 
+            ); 
+
+            pRenderTarget->FillRectangle( rectangle, pBrush); 
+
+            pBrush->Release();
+            pBrush = NULL;
+
+
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Identity() );
+        
+        }
 
         pRenderTarget->EndDraw();
         
@@ -843,14 +830,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         }
 
         case WM_PAINT: {  //For printing context
-             
+            /*
+            if( pStateProperties->isF4 ){
+                
+                pStateProperties->isF4 = false;
+                goto keyTAB;
+            }
+            */
             if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) {
             
                 SendMessage( hWnd, WM_KEYDOWN, VK_F2, lParam );
                 break;
             }
             
-
             if( hDIB && !pStateProperties->isF5 ){
             
                 pStateProperties->isF5 = false;
@@ -879,7 +871,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             );
 
 
-            if( pStateProperties->started ) goto donePaint;
+            if( !TryEnterCriticalSection(&crtSec) ) goto donePaint;
 
             pStateProperties->started = true;
            
@@ -897,13 +889,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         std::complex<int>(rc.right+25, rc.bottom + 25) 
             );
 
-            render4walls( 
-                        std::complex<int>(50, 50), 
-                        std::complex<int>(50, 100), 
-                        std::complex<int>(25, 75), 
-                        std::complex<int>(75, 75) 
-            );
-            
+            pStateProperties->isLocation = false;
+            pStateProperties->locX = 50;
+            pStateProperties->locY = 50;
+            renderWalls( std::complex<int>(pStateProperties->locX, pStateProperties->locX) );
+            /*
             strBuff = "rc.bottom/10:  ";
             strBuff += std::to_string( rc.bottom/10  );
             loadTcharBuff();          
@@ -933,8 +923,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             strBuff += std::to_string( pStateProperties->height );
             loadTcharBuff();          
             TextOut(hdc,1050, 270 , tcharBuff, strBuff.length() ); 
-
-            /*
+            
             strBuff = std::to_string( lpOverlapped.Offset );
             //strBuff = std::to_string( pMaze->GetPixelFormat().format );
             loadTcharBuff();          
@@ -955,7 +944,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             hdc = NULL;
             EndPaint(hWnd, &ps );
 
-            pStateProperties->started = false;
+            //pStateProperties->started = false;
+            LeaveCriticalSection( &crtSec );
 
             donePaint:
 
@@ -1046,8 +1036,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_UP:{
 
-                    if(pStateProperties->started) goto doneUp;
-                    pStateProperties->started = true;
+                    if( !TryEnterCriticalSection(&crtSec) ) 
+                        goto doneUp;
+
+                    //pStateProperties->started = true;
 
                     pStateProperties->verticalPg = pStateProperties->verticalPg < pStateProperties->height/(rc.bottom/10)+1 
                                                                     ?
@@ -1055,30 +1047,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                                     :
                                                                     pStateProperties->verticalPg;
 
-                    pStateProperties->started = false;
-                    goto refresh;
+                    //pStateProperties->started = false;
+                    LeaveCriticalSection(&crtSec);
+                    goto refreshMaze;
                     break;
                 }
 
                 case VK_DOWN:{
 
-                    if(pStateProperties->started) goto doneDown;
-                    pStateProperties->started = true;
+                    if( !TryEnterCriticalSection(&crtSec) ) 
+                        goto doneDown;
+                    //pStateProperties->started = true;
 
                     pStateProperties->verticalPg = pStateProperties->verticalPg
                                                                     ?
                                                                     --pStateProperties->verticalPg
                                                                     :
                                                                     0;
-                    pStateProperties->started = false;
-                    goto refresh;
+                    //pStateProperties->started = false;
+                    LeaveCriticalSection(&crtSec);
+                    goto refreshMaze;
                     break;
                 }
 
                 case VK_LEFT:{
 
-                    if(pStateProperties->started) goto doneLeft;
-                    pStateProperties->started = true;
+                    if( !TryEnterCriticalSection(&crtSec) ) 
+                        goto doneLeft;
+                    //pStateProperties->started = true;
 
                     pStateProperties->horizontalPg = pStateProperties->horizontalPg
                                                                     ?
@@ -1086,15 +1082,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                                     :
                                                                     0;
 
-                    pStateProperties->started = false;
-                    goto refresh;
+                    //pStateProperties->started = false;
+                    LeaveCriticalSection(&crtSec);
+                    goto refreshMaze;
                     break;
                 }
 
                 case VK_RIGHT:{
 
-                    if(pStateProperties->started) goto doneRight;
-                    pStateProperties->started = true;
+                    if( !TryEnterCriticalSection(&crtSec) ) 
+                        goto doneRight;
+                    //pStateProperties->started = true;
 
                     pStateProperties->horizontalPg = pStateProperties->horizontalPg < pStateProperties->width/(rc.right/10)+1 
                                                                     ?
@@ -1102,8 +1100,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                                     :
                                                                     pStateProperties->horizontalPg;
 
-                    pStateProperties->started = false;
-                    goto refresh;
+                    //pStateProperties->started = false;
+                    LeaveCriticalSection(&crtSec);
+                    goto refreshMaze;
                     break;
                 }
 
@@ -1120,14 +1119,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_UP:{
 
-                    if(pStateProperties->started) goto doneUp;
+                    if( !TryEnterCriticalSection(&crtSec) )
+                        goto doneUp;
 
-                        pStateProperties->started = true;
+                        //pStateProperties->started = true;
 
                         pStateProperties->mvY -= 10;
                     
-                        pStateProperties->started = false;
-                        goto refresh;
+                        //pStateProperties->started = false;
+                        LeaveCriticalSection(&crtSec);
+                        SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
 
                     doneUp:
                         break;                
@@ -1135,14 +1136,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_DOWN:{
 
-                    if(pStateProperties->started) goto doneDown;
+                    if( !TryEnterCriticalSection(&crtSec) )
+                        goto doneDown;
 
-                        pStateProperties->started = true;
+                        //pStateProperties->started = true;
 
                         pStateProperties->mvY += 10;
 
-                        pStateProperties->started = false;
-                        goto refresh;
+                        //pStateProperties->started = false;
+                        LeaveCriticalSection(&crtSec);
+                        SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
 
                     doneDown:
                         break;
@@ -1151,14 +1154,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_LEFT:{
 
-                    if(pStateProperties->started) goto doneLeft;
+                    if( !TryEnterCriticalSection(&crtSec) )
+                        goto doneLeft;
 
-                        pStateProperties->started = true;
+                        //pStateProperties->started = true;
 
                         pStateProperties->mvX -= 10;
 
-                        pStateProperties->started = false;
-                        goto refresh;
+                        //pStateProperties->started = false;
+                        LeaveCriticalSection(&crtSec);
+                        SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
 
                     doneLeft:
                         break;                
@@ -1166,14 +1171,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_RIGHT:{
 
-                    if(pStateProperties->started) goto doneRight;
+                    if( !TryEnterCriticalSection(&crtSec) )
+                        goto doneRight;
 
-                        pStateProperties->started = true;
+                        //pStateProperties->started = true;
 
                         pStateProperties->mvX += 10;
 
-                        pStateProperties->started = false;
-                        goto refresh;
+                        //pStateProperties->started = false;
+                        LeaveCriticalSection(&crtSec);
+                        SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
 
                     doneRight:
 
@@ -1197,7 +1204,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         //clnBuffs( tcharBuff, buffMaze, strBuff );
                         strBuff = "\\maze.pnm";
-                        //ProgramProperties::initPropertiesF2( *pStateProperties, BUFF_MAX );
                         if(TryEnterCriticalSection(&crtSec) ){
 
                             loadMaze();
@@ -1225,25 +1231,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
                                 break;
                             else
-                                goto refresh;                        
+                                goto refreshMaze;                        
                             
                         break;                
                 }
 
-                
+                case VK_F4: {               
+                    
+                    refreshLocation:
+
+                        if( !TryEnterCriticalSection(&crtSec) ) goto doneF4;
+
+                            curRc.left    = pStateProperties->locX + pStateProperties->mvX;
+                            curRc.top     = rc.bottom/10 - (pStateProperties->locY + pStateProperties->mvY);
+                            curRc.right   = curRc.left + 10;
+                            curRc.bottom  = curRc.top  + 10;
+
+                            pStateProperties->isF4 = true;
+
+                            LeaveCriticalSection( &crtSec );
+                            InvalidateRect( hWnd, &curRc, TRUE);
+                            UpdateWindow( hWnd );
+                            
+                    doneF4:
+                        break;  
+                }                
+
                 case VK_F5: {               
                     
-                    refresh:
+                    refreshMaze:
 
-                        if(pStateProperties->started) goto doneF5;
+                        if( !TryEnterCriticalSection(&crtSec) ) goto doneF5;
 
-                            pStateProperties->started = true;
+                            //pStateProperties->started = true;
 
                             ProgramProperties::rstIterator(*pStateProperties);
                             lpOverlapped = {0}; 
 
-                            pStateProperties->started = false;
+                            //pStateProperties->started = false;
                             pStateProperties->isF5    = true;
+
+                            LeaveCriticalSection( &crtSec );
                             InvalidateRect( hWnd, NULL, TRUE );
                             UpdateWindow( hWnd );
 
@@ -1306,14 +1334,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     
 
                     hdc = BeginPaint(hWnd, &ps );
-                    
-                    
-                    render4walls( 
-                                std::complex<int>(50, 50), 
-                                std::complex<int>(50, 100), 
-                                std::complex<int>(25, 75), 
-                                std::complex<int>(75, 75) 
-                    );
+
+                    pStateProperties->isLocation = true;
+                    pStateProperties->locX = 0;
+                    pStateProperties->locY = 0;
+
+                    renderWalls( std::complex<int>(pStateProperties->locX, pStateProperties->locX) );
                     
                     DeleteDC(hdc);
                     hdc = NULL;
