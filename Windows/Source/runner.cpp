@@ -307,6 +307,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    ProgramProperties::initPropertiesF2( *pStateProperties, BUFF_MAX );
    ProgramProperties::rstIterator( *pStateProperties ); 
    ProgramProperties::rstMazeStart( *pStateProperties );
+   ProgramProperties::rstLoc( *pStateProperties ); 
    ProgramProperties::rstMv( *pStateProperties ); 
    ProgramProperties::rstDimensions( *pStateProperties ); 
 
@@ -704,12 +705,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                             //Cuz BitBlt scans from the bottom, stores the content in a reverse order
                             for ( int i = 0; i < MAX_MAZE_WIDTH; ++i )
-                                Common::Maze::maze[ pStateProperties->height - pStateProperties->itrCounts ][i] = 
-                                    pStateProperties->f2Mssg[i] == '1' 
-                                                                ?
-                                                                1
-                                                                :
-                                                                0;
+
+                                if(pStateProperties->itrCounts < pStateProperties->height){
+                                
+                                    Common::Maze::maze[ pStateProperties->height - pStateProperties->itrCounts - 1][i] = 
+                                        pStateProperties->f2Mssg[i] == '1' 
+                                                                    ?
+                                                                    1
+                                                                    :
+                                                                    0;                                
+                                }
+
+
 
                         }
                         else {                   
@@ -890,9 +897,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             );
 
             pStateProperties->isLocation = false;
-            pStateProperties->locX = 50;
-            pStateProperties->locY = 50;
-            renderWalls( std::complex<int>(pStateProperties->locX, pStateProperties->locX) );
+            renderWalls( std::complex<int>(pStateProperties->locX, pStateProperties->locY) );
             /*
             strBuff = "rc.bottom/10:  ";
             strBuff += std::to_string( rc.bottom/10  );
@@ -908,6 +913,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             strBuff += std::to_string( pStateProperties->mvY  );
             loadTcharBuff();          
             TextOut(hdc,250, 370 , tcharBuff, strBuff.length() ); 
+
+            strBuff = "locX:  ";
+            strBuff += std::to_string( pStateProperties->locX  );
+            loadTcharBuff();          
+            TextOut(hdc,400, 370 , tcharBuff, strBuff.length() ); 
+
+            strBuff = "locY:  ";
+            strBuff += std::to_string( pStateProperties->locY  );
+            loadTcharBuff();          
+            TextOut(hdc,550, 370 , tcharBuff, strBuff.length() ); 
 
             strBuff = "pStateProperties->itrCounts:  ";
             strBuff += std::to_string( pStateProperties->itrCounts );
@@ -1122,10 +1137,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if( !TryEnterCriticalSection(&crtSec) )
                         goto doneUp;
 
-                        //pStateProperties->started = true;
-
-                        pStateProperties->mvY -= 10;
+                        //pStateProperties->started = true; 
                     
+                        pStateProperties->mvY = Common::Maze::maze
+                                                [ pStateProperties->locY + (-pStateProperties->mvY/10) + 1]
+                                                [ pStateProperties->locX + pStateProperties->mvX/10       ]
+                                                                           ?
+                                                                            pStateProperties->mvY
+                                                                            :
+                                                                            pStateProperties->mvY-10;
+                    
+
+                        //pStateProperties->mvY = pStateProperties->mvY-10;
                         //pStateProperties->started = false;
                         LeaveCriticalSection(&crtSec);
                         SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
@@ -1140,9 +1163,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         goto doneDown;
 
                         //pStateProperties->started = true;
-
-                        pStateProperties->mvY += 10;
-
+                        
+                        pStateProperties->mvY = Common::Maze::maze
+                                                [ pStateProperties->locY + (-pStateProperties->mvY/10) - 1]
+                                                [ pStateProperties->locX + pStateProperties->mvX/10       ]
+                                                                           ?
+                                                                            pStateProperties->mvY
+                                                                            :
+                                                                            pStateProperties->mvY+10;
+                         
+                      
+                        //pStateProperties->mvY = pStateProperties->mvY+10;
                         //pStateProperties->started = false;
                         LeaveCriticalSection(&crtSec);
                         SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
@@ -1158,9 +1189,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         goto doneLeft;
 
                         //pStateProperties->started = true;
+                        pStateProperties->mvX = Common::Maze::maze
+                                                [ pStateProperties->locY + (-pStateProperties->mvY/10)]
+                                                [ pStateProperties->locX + pStateProperties->mvX/10 -1]
+                                                                           ?
+                                                                            pStateProperties->mvX
+                                                                            :
+                                                                            pStateProperties->mvX-10;
 
-                        pStateProperties->mvX -= 10;
-
+                        //pStateProperties->mvX = pStateProperties->mvX-10;
                         //pStateProperties->started = false;
                         LeaveCriticalSection(&crtSec);
                         SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
@@ -1175,9 +1212,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         goto doneRight;
 
                         //pStateProperties->started = true;
-
-                        pStateProperties->mvX += 10;
-
+                        pStateProperties->mvX = Common::Maze::maze
+                                                [ pStateProperties->locY + (-pStateProperties->mvY/10)]
+                                                [ pStateProperties->locX + pStateProperties->mvX/10 +1]
+                                                                           ?
+                                                                            pStateProperties->mvX
+                                                                            :
+                                                                            pStateProperties->mvX+10;
+                        //pStateProperties->mvX = pStateProperties->mvX+10;
                         //pStateProperties->started = false;
                         LeaveCriticalSection(&crtSec);
                         SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
@@ -1336,10 +1378,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     hdc = BeginPaint(hWnd, &ps );
 
                     pStateProperties->isLocation = true;
-                    pStateProperties->locX = 0;
-                    pStateProperties->locY = 0;
+                    //pStateProperties->locX = 1; 
+                    //pStateProperties->locY = 1;
 
-                    renderWalls( std::complex<int>(pStateProperties->locX, pStateProperties->locX) );
+                    renderWalls( 
+                                std::complex<int>(pStateProperties->locX*10, 
+                                (((pStateProperties->height-1)-pStateProperties->locY) %(rc.bottom/10)) *10 )
+                    );
                     
                     DeleteDC(hdc);
                     hdc = NULL;
