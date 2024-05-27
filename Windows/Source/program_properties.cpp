@@ -46,13 +46,13 @@ namespace ProgramProperties {
     //initialize states 
     static void initPropertiesStates ( StateProperties& pStateProperties ) { 
         
-        pStateProperties.cleaned   = false;
-        pStateProperties.isF4      = false;
-        pStateProperties.f2End     = false;
-        pStateProperties.path2long = false;
-        pStateProperties.started   = false;
-        pStateProperties.isRender  = false;
-        pStateProperties.closeIt   = false;
+        pStateProperties.cleaned     = false;
+        pStateProperties.isF4       = false;
+        pStateProperties.isF5        = false;
+        pStateProperties.path2long   = false;
+        pStateProperties.started     = false;
+        pStateProperties.isLocation  = false;
+        pStateProperties.closeIt     = false;
     }
 
     //intialize string content
@@ -74,6 +74,17 @@ namespace ProgramProperties {
         pStateProperties.itrCounts = 0;
     }
 
+    static void rstMazeStart ( StateProperties& pStateProperties ) { 
+
+        pStateProperties.mazeStart = 0;
+    }
+
+    static void rstLoc ( StateProperties& pStateProperties ) { 
+
+        pStateProperties.locX = 1;
+        pStateProperties.locY = 70;
+    }
+
     static void rstMv ( StateProperties& pStateProperties ) { 
 
         pStateProperties.mvX = 0;
@@ -86,6 +97,22 @@ namespace ProgramProperties {
         pStateProperties.height            = 0;
         pStateProperties.verticalPg        = 0;
         pStateProperties.horizontalPg      = 0; 
+
+    }
+
+    static bool pageMatched ( StateProperties& pStateProperties, int rcBottom, int rcRight ) { 
+        
+
+        return  
+            (pStateProperties.locX + pStateProperties.mvX/10)/(rcRight/10)  
+                                    ==  
+                        pStateProperties.horizontalPg
+
+                                    &&
+
+            (pStateProperties.locY + pStateProperties.mvY/10)/(rcBottom/10) 
+                                    ==
+                          pStateProperties.verticalPg;
 
     }
 }
