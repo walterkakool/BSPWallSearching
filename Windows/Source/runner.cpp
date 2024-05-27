@@ -306,7 +306,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    ProgramProperties::initPropertiesStates( *pStateProperties );
    ProgramProperties::initPropertiesF2( *pStateProperties, BUFF_MAX );
    ProgramProperties::rstIterator( *pStateProperties ); 
-   ProgramProperties::rstMazeStart( *pStateProperties );
+   ProgramProperties::rstMazeStart( *pStateProperties );    
    ProgramProperties::rstLoc( *pStateProperties ); 
    ProgramProperties::rstMv( *pStateProperties ); 
    ProgramProperties::rstDimensions( *pStateProperties ); 
@@ -517,7 +517,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 );                
 
 
-                if( Common::Maze::maze[i + pStateProperties->verticalPg*rc.bottom/10 ][j + pStateProperties->horizontalPg*rc.right/10 ] ){
+                if( Common::Maze::maze[i + pStateProperties->verticalPg* (rc.bottom)/10 ][j + pStateProperties->horizontalPg*rc.right/10 ] ){
                 
                     pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Black ), &pBrush );
 
@@ -545,14 +545,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                             &hWnd,
                                                             &fullRc,
                                                             &paint_sz,
-                                                            &pFactory] ( std::complex<int> location ) {         
+                                                            &pFactory] ( std::complex<int> location ) { 
+
+        int localX = location.real() * 10;
+        int localY = (((pStateProperties->height-1)-location.imag()) %( (rc.bottom) /10)) *10;
 
         pRenderTarget->BeginDraw();
         pRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
 
         pRenderTarget->DrawBitmap(
                                 pMaze,
-                                D2D1::RectF(rc.left, rc.top, rc.right, rc.bottom),
+                                D2D1::RectF(rc.left, rc.top, rc.right, (rc.bottom)),
                                 1.0,
                                 D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
 
@@ -562,17 +565,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation( 
                                                                         pStateProperties->mvX,
-                                                                        pStateProperties->mvY                   
+                                                                        pStateProperties->mvY + 5                  
                                          )
             );
 
             pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Purple ), &pBrush );
 
             set_rectangle_location( 
-                                    location.real(), 
-                                    location.imag()+5, 
-                                    location.real() + 10, 
-                                    location.imag()+5 + 10 
+                                    localX, 
+                                    localY, 
+                                    localX + 10, 
+                                    localY + 10 
             ); 
 
             pRenderTarget->FillRectangle( rectangle, pBrush); 
@@ -872,7 +875,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     D2D1::RenderTargetProperties(),  
                     D2D1::HwndRenderTargetProperties(
                                                         hWnd, 
-                                                        D2D1::SizeU(rc.right, rc.bottom)
+                                                        D2D1::SizeU(rc.right, (rc.bottom) )
                     ), 
                     &pRenderTarget
             );
@@ -883,42 +886,42 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             pStateProperties->started = true;
            
             pRenderTarget->CreateCompatibleRenderTarget(
-                                                        D2D1::SizeF(rc.right, rc.bottom),  
+                                                        D2D1::SizeF(rc.right, (rc.bottom) ),  
                                                         &pBitmapRenderTarget
             );
 
             hdc = BeginPaint(hWnd, &ps );            
 
             setBitmap( 
-                        std::complex<int>(rc.right, rc.bottom + 0), 
-                        std::complex<int>(rc.right, rc.bottom + 50), 
-                        std::complex<int>(rc.right-25, rc.bottom + 25), 
-                        std::complex<int>(rc.right+25, rc.bottom + 25) 
+                        std::complex<int>(rc.right, (rc.bottom) + 0), 
+                        std::complex<int>(rc.right, (rc.bottom) + 50), 
+                        std::complex<int>(rc.right-25, (rc.bottom) + 25), 
+                        std::complex<int>(rc.right+25, (rc.bottom) + 25) 
             );
 
             pStateProperties->isLocation = false;
             renderWalls( std::complex<int>(pStateProperties->locX, pStateProperties->locY) );
             /*
-            strBuff = "rc.bottom/10:  ";
-            strBuff += std::to_string( rc.bottom/10  );
+            strBuff = "currentPgX:  ";
+            strBuff += std::to_string( (pStateProperties->locX + pStateProperties->mvX/10)/(rc.right/10)  );
             loadTcharBuff();          
             TextOut(hdc,100, 270 , tcharBuff, strBuff.length() ); 
 
-            strBuff = "mvX:  ";
-            strBuff += std::to_string( pStateProperties->mvX  );
+            strBuff = "currentPgY:  ";
+            strBuff += std::to_string( (pStateProperties->locY + (-pStateProperties->mvY/10))/(rc.bottom/10)    );
             loadTcharBuff();          
             TextOut(hdc,100, 370 , tcharBuff, strBuff.length() ); 
 
-            strBuff = "mvY:  ";
-            strBuff += std::to_string( pStateProperties->mvY  );
+            strBuff = "pageX:  ";
+            strBuff += std::to_string( pStateProperties->horizontalPg  );
             loadTcharBuff();          
             TextOut(hdc,250, 370 , tcharBuff, strBuff.length() ); 
 
-            strBuff = "locX:  ";
-            strBuff += std::to_string( pStateProperties->locX  );
+            strBuff = "pageY:  ";
+            strBuff += std::to_string( pStateProperties->verticalPg  );
             loadTcharBuff();          
             TextOut(hdc,400, 370 , tcharBuff, strBuff.length() ); 
-
+            
             strBuff = "locY:  ";
             strBuff += std::to_string( pStateProperties->locY  );
             loadTcharBuff();          
@@ -984,12 +987,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 hBmp   = CreateCompatibleBitmap( 
                                                 hdc,
                                                 rc.right,
-                                                rc.bottom
+                                                (rc.bottom)
                          );
 
                 SelectObject( hdcMem, hBmp );
                 
-                if (!BitBlt(hdcMem,0 , 0,  rc.right,rc.bottom, hdc, 0, 0,SRCCOPY) )
+                if (!BitBlt(hdcMem,0 , 0,  rc.right, (rc.bottom), hdc, 0, 0,SRCCOPY) )
                     goto loadF2;
                 
                 GetObject(hBmp, sizeof(BITMAP), &bmp);
@@ -1016,7 +1019,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             hdc,
                             hBmp,
                             0,
-                            (UINT)rc.bottom,
+                            (UINT)(rc.bottom),
                             lpBmp,
                             (BITMAPINFO*)&bi, 
                             DIB_RGB_COLORS
@@ -1030,7 +1033,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 hdc = NULL;
                 
                 //if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) goto loadF2;
-                SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
+                SendMessage( hWnd, WM_KEYDOWN, VK_SPACE, lParam );
 
                 break;
         }      
@@ -1056,7 +1059,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                     //pStateProperties->started = true;
 
-                    pStateProperties->verticalPg = pStateProperties->verticalPg < pStateProperties->height/(rc.bottom/10)+1 
+                    pStateProperties->verticalPg = pStateProperties->verticalPg < pStateProperties->height/( (rc.bottom)/10)+1 
                                                                     ?
                                                                     ++pStateProperties->verticalPg
                                                                     :
@@ -1148,10 +1151,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                                             pStateProperties->mvY-10;
                     
 
-                        //pStateProperties->mvY = pStateProperties->mvY-10;
-                        //pStateProperties->started = false;
                         LeaveCriticalSection(&crtSec);
-                        SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
+                        SendMessage( hWnd, WM_KEYDOWN, VK_SPACE, lParam );
 
                     doneUp:
                         break;                
@@ -1173,10 +1174,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                                             pStateProperties->mvY+10;
                          
                       
-                        //pStateProperties->mvY = pStateProperties->mvY+10;
-                        //pStateProperties->started = false;
                         LeaveCriticalSection(&crtSec);
-                        SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
+                        SendMessage( hWnd, WM_KEYDOWN, VK_SPACE, lParam );
 
                     doneDown:
                         break;
@@ -1197,10 +1196,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                                             :
                                                                             pStateProperties->mvX-10;
 
-                        //pStateProperties->mvX = pStateProperties->mvX-10;
-                        //pStateProperties->started = false;
                         LeaveCriticalSection(&crtSec);
-                        SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
+                        SendMessage( hWnd, WM_KEYDOWN, VK_SPACE, lParam );
 
                     doneLeft:
                         break;                
@@ -1211,7 +1208,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     if( !TryEnterCriticalSection(&crtSec) )
                         goto doneRight;
 
-                        //pStateProperties->started = true;
                         pStateProperties->mvX = Common::Maze::maze
                                                 [ pStateProperties->locY + (-pStateProperties->mvY/10)]
                                                 [ pStateProperties->locX + pStateProperties->mvX/10 +1]
@@ -1219,10 +1215,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                                             pStateProperties->mvX
                                                                             :
                                                                             pStateProperties->mvX+10;
-                        //pStateProperties->mvX = pStateProperties->mvX+10;
-                        //pStateProperties->started = false;
+
                         LeaveCriticalSection(&crtSec);
-                        SendMessage( hWnd, WM_KEYDOWN, VK_TAB, lParam );
+                        SendMessage( hWnd, WM_KEYDOWN, VK_SPACE, lParam );
 
                     doneRight:
 
@@ -1278,27 +1273,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         break;                
                 }
 
-                case VK_F4: {               
-                    
-                    refreshLocation:
-
-                        if( !TryEnterCriticalSection(&crtSec) ) goto doneF4;
-
-                            curRc.left    = pStateProperties->locX + pStateProperties->mvX;
-                            curRc.top     = rc.bottom/10 - (pStateProperties->locY + pStateProperties->mvY);
-                            curRc.right   = curRc.left + 10;
-                            curRc.bottom  = curRc.top  + 10;
-
-                            pStateProperties->isF4 = true;
-
-                            LeaveCriticalSection( &crtSec );
-                            InvalidateRect( hWnd, &curRc, TRUE);
-                            UpdateWindow( hWnd );
-                            
-                    doneF4:
-                        break;  
-                }                
-
                 case VK_F5: {               
                     
                     refreshMaze:
@@ -1321,48 +1295,40 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         break;  
                 }
 
+                case VK_F8: {               
+                    
+                    glancingMode:
+
+                        if( !TryEnterCriticalSection(&crtSec) ) goto doneF8;
+
+                            ++pStateProperties->glancing %= 2;
+
+                            LeaveCriticalSection( &crtSec );
+                            InvalidateRect( hWnd, &curRc, TRUE);
+                            UpdateWindow( hWnd );
+                            
+                    doneF8:
+                        SendMessage( hWnd, WM_KEYDOWN, VK_F5, lParam );    
+                        break;  
+                } 
+
                 //will toggle location
-                case VK_TAB: {
+                case VK_SPACE: {
                                
-                    //updating StateProperties
-                    //TAB's been pressed; setting it to true
-                    /*
-                    printMaze:
-
-                        if(pStateProperties->started) goto outDone;
-
-                        pStateProperties->started = true;
-
-                        initPropertiesF2 ( *pStateProperties, MAX_LOADSTRING );
-                        GetCurrentDirectory( MAX_LOADSTRING, tcharBuff );
-
-                        for ( int i = 0; i< MAX_LOADSTRING; ++i  ) 
-                            pStateProperties->f2path [i] = tcharBuff [i];
-
-                        strBuff = "\\rawBmp.pnm";   
-                        //++pStateProperties->itrCounts;   
-                        outMaze();
-                        rstTxt(*pStateProperties);
-                        pStateProperties->started = false;
-
-                        //rfScreen();
-                        
-                    outDone:
-                    */
-                    keyTAB:
+                    keySpace:
                     D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED , &pFactory);
 
                     pFactory->CreateHwndRenderTarget ( 
                                 D2D1::RenderTargetProperties(),  
                                 D2D1::HwndRenderTargetProperties(
                                                                     hWnd, 
-                                                                    D2D1::SizeU(rc.right, rc.bottom)
+                                                                    D2D1::SizeU(rc.right, (rc.bottom))
                                 ), 
                                 &pRenderTarget
                     );
 
                     pRenderTarget->CreateCompatibleRenderTarget(
-                                                                D2D1::SizeF(rc.right, rc.bottom),  
+                                                                D2D1::SizeF(rc.right, (rc.bottom)),  
                                                                 &pBitmapRenderTarget
                     );
 
@@ -1378,14 +1344,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     hdc = BeginPaint(hWnd, &ps );
 
                     pStateProperties->isLocation = true;
-                    //pStateProperties->locX = 1; 
-                    //pStateProperties->locY = 1;
 
-                    renderWalls( 
-                                std::complex<int>(pStateProperties->locX*10, 
-                                (((pStateProperties->height-1)-pStateProperties->locY) %(rc.bottom/10)) *10 )
-                    );
-                    
+                    if ( pStateProperties->height )                        
+                        renderWalls( 
+                                    std::complex<int>(
+                                                        pStateProperties->locX, 
+                                                        pStateProperties->locY
+                                    )
+                        );
+
                     DeleteDC(hdc);
                     hdc = NULL;
                     EndPaint(hWnd, &ps);
@@ -1402,7 +1369,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     pMaze->Release();
                     pMaze = NULL;
                     
-                    CloseHandle(hFile);
+                    if( !pStateProperties->glancing && !ProgramProperties::pageMatched( *pStateProperties, (rc.bottom), rc.right ) ){
+                        
+                        CloseHandle(hFile);
+
+                        pStateProperties->horizontalPg = (pStateProperties->locX + pStateProperties->mvX/10)/(rc.right/10);
+                        pStateProperties->verticalPg   = (pStateProperties->locY + (-pStateProperties->mvY/10))/( (rc.bottom) /10);
+
+                        SendMessage( hWnd, WM_KEYDOWN, VK_F5, lParam );
+                    }
+                    else        
+                        CloseHandle(hFile);
                     break;                
                 }
 
