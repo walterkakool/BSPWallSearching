@@ -578,7 +578,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                     localY + 10 
             ); 
 
-            pRenderTarget->FillRectangle( rectangle, pBrush); 
+            if( !pStateProperties->glancing )
+                pRenderTarget->FillRectangle( rectangle, pBrush); 
 
             pBrush->Release();
             pBrush = NULL;
@@ -1137,7 +1138,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_UP:{
 
-                    if( !TryEnterCriticalSection(&crtSec) )
+                    if( !TryEnterCriticalSection(&crtSec) || pStateProperties->glancing )
                         goto doneUp;
 
                         //pStateProperties->started = true; 
@@ -1160,7 +1161,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_DOWN:{
 
-                    if( !TryEnterCriticalSection(&crtSec) )
+                    if( !TryEnterCriticalSection(&crtSec) || pStateProperties->glancing )
                         goto doneDown;
 
                         //pStateProperties->started = true;
@@ -1184,7 +1185,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_LEFT:{
 
-                    if( !TryEnterCriticalSection(&crtSec) )
+                    if( !TryEnterCriticalSection(&crtSec) || pStateProperties->glancing )
                         goto doneLeft;
 
                         //pStateProperties->started = true;
@@ -1205,7 +1206,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_RIGHT:{
 
-                    if( !TryEnterCriticalSection(&crtSec) )
+                    if( !TryEnterCriticalSection(&crtSec) || pStateProperties->glancing )
                         goto doneRight;
 
                         pStateProperties->mvX = Common::Maze::maze
