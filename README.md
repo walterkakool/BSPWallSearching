@@ -26,6 +26,6 @@ the functionality of maze scrolling.
 ~~`First runs`--------------prints time;~~\
 `F2`-----------------------current dir has maze.pnm ? prints the contents : "No input file.";\
 `F5`-----------------------cleans all;\
-~~`Clicking_vertical_bar`-prints the message;~~\
-~~`TAB`----------------------render 4 walls.~~\
-`Alt+↑↓→←`--------------Scrolls screen
+`F8`-----------------------glancing mode;\
+`↑↓→←`--------------purple moves\
+`Alt+↑↓→←`--------------Scrolls screen (only under glancing mode)
