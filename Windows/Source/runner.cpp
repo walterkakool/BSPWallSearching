@@ -550,24 +550,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         int localX = location.real() * 10;
         int localY = (((pStateProperties->height-1)-location.imag()) %( (rc.bottom) /10)) *10;
 
+        int localMvX = pStateProperties->horizontalPg 
+                                        ?
+                                        ( (pStateProperties->locX + pStateProperties->mvX/10) % (rc.right/10) )*10 -10 
+                                        :
+                                        pStateProperties->mvX;
+
+        int localMvY = pStateProperties->verticalPg
+                                        ?
+                                        (pStateProperties->locY*10 + pStateProperties->mvY) % rc.bottom + 55
+                                        :
+                                        pStateProperties->mvY + 5;
+
         pRenderTarget->BeginDraw();
         pRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
 
         pRenderTarget->DrawBitmap(
-                                pMaze,
-                                D2D1::RectF(rc.left, rc.top, rc.right, (rc.bottom)),
-                                1.0,
-                                D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
+                                    pMaze,
+                                    D2D1::RectF(rc.left, rc.top, rc.right, (rc.bottom)),
+                                    1.0,
+                                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR
 
-        );
+                       );
 
         if( pStateProperties->isLocation ){
         
-            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation( 
-                                                                        pStateProperties->mvX,
-                                                                        pStateProperties->mvY + 5                  
-                                         )
-            );
+
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation( localMvX, localMvY ));
 
             pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Purple ), &pBrush );
 
