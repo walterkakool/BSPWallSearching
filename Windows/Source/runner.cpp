@@ -549,18 +549,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         int localX = location.real() * 10;
         int localY = (((pStateProperties->height-1)-location.imag()) %( (rc.bottom) /10)) *10;
+        
+        int diffPgX = pStateProperties->horizontalPg ? 1 : 0; 
+        int diffPgY = pStateProperties->verticalPg   ? 1 : 0;
 
-        int localMvX = pStateProperties->horizontalPg 
-                                        ?
-                                        ( (pStateProperties->locX + pStateProperties->mvX/10) % (rc.right/10) )*10 -10 
-                                        :
-                                        pStateProperties->mvX;
+        int localMvX = pStateProperties->mvX;
 
-        int localMvY = pStateProperties->verticalPg
-                                        ?
-                                        (pStateProperties->locY*10 + pStateProperties->mvY) % rc.bottom + 55
-                                        :
-                                        pStateProperties->mvY + 5;
+        int localMvY = ( ( (pStateProperties->mvY/10 % (rc.bottom/10- diffPgY) ) )*10 + 5 ) * !diffPgY
+                                                   +
+                                                   //diffPgY  * 14 
+                                                   //+
+                       diffPgY * ( ( ( (pStateProperties->mvY/10 + (rc.bottom/10 - diffPgY) ) % (rc.bottom/10) ) ) * 10 + 15);
 
         pRenderTarget->BeginDraw();
         pRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
@@ -576,7 +575,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         if( pStateProperties->isLocation ){
         
 
-            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation( localMvX, localMvY ));
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(localMvX, localMvY) );
 
             pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Purple ), &pBrush );
 
