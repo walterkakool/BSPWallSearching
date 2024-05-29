@@ -517,7 +517,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 );                
 
 
-                if( Common::Maze::maze[i + pStateProperties->verticalPg* (rc.bottom)/10 ][j + pStateProperties->horizontalPg*rc.right/10 ] ){
+                if( Common::Maze::maze[i + pStateProperties->verticalPg* (rc.bottom/10) ][j + pStateProperties->horizontalPg* (rc.right/10)] ){
                 
                     pBitmapRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Black ), &pBrush );
 
