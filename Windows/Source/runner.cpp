@@ -100,6 +100,11 @@ HANDLE              hFile;
 OVERLAPPED          lpOverlapped;
 RECT                rc;
 
+BSP::Segment*                  current_segment;
+std::pair<bool, BSP::Segment*> root;
+BSP::Segment*                  leaf_node;
+Common::Naive*                 naive_obj;
+
 void clnBuffs(TCHAR tcharBuff[], char buffMaze[], string &strBuff );
 
 VOID CALLBACK ContentRoutine(
@@ -293,15 +298,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    hFile            = NULL;
 
    clnBuffs( tcharBuff, buffMaze, strBuff );
-   /*
-   for(int i = 0; i < 10240; ++i) {
-        for(int j = 0; j < 10240; ++j) {
-            
-            Common::Maze::maze[i][j] = 0;
-        }
    
-   }
-   */
+   int use_BSP = 1;    
+   naive_obj = new Common::Naive();
+   current_segment= new BSP::Segment();
+    
    pStateProperties = new (std::nothrow) StateProperties;
    ProgramProperties::initPropertiesStates( *pStateProperties );
    ProgramProperties::initPropertiesF2( *pStateProperties, BUFF_MAX );
@@ -828,6 +829,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         DestroyWindow(hWnd);
                         delete(pStateProperties);
                         DeleteCriticalSection(&crtSec);
+                        
+                        delete current_segment;
+                        delete naive_obj;
+                        delete root.second;
                         break;                    
                     }
 
@@ -849,13 +854,58 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         }
 
         case WM_PAINT: {  //For printing context
-            /*
-            if( pStateProperties->isF4 ){
-                
-                pStateProperties->isF4 = false;
-                goto keyTAB;
-            }
-            */
+            
+            if( pStateProperties->isF12 ){
+            
+                hdc = BeginPaint(hWnd, &ps );   
+
+                strBuff = "southX:  ";
+                strBuff += std::to_string( Location::south_wall_point.real() );
+                loadTcharBuff();          
+                TextOut(hdc,100, 370 , tcharBuff, strBuff.length() ); 
+
+                strBuff = "southY:  ";
+                strBuff += std::to_string( Location::south_wall_point.imag() );
+                loadTcharBuff();          
+                TextOut(hdc,250, 370 , tcharBuff, strBuff.length() ); 
+
+                strBuff = "northX:  ";
+                strBuff += std::to_string( Location::north_wall_point.real()  );
+                loadTcharBuff();          
+                TextOut(hdc,400, 370 , tcharBuff, strBuff.length() ); 
+            
+                strBuff = "northY:  ";
+                strBuff += std::to_string( Location::north_wall_point.imag()  );
+                loadTcharBuff();          
+                TextOut(hdc,550, 370 , tcharBuff, strBuff.length() ); 
+
+                strBuff = "eastX:  ";
+                strBuff += std::to_string( Location::east_wall_point.real() );
+                loadTcharBuff();          
+                TextOut(hdc,750, 270 , tcharBuff, strBuff.length() ); 
+
+                strBuff = "eastY:  ";
+                strBuff += std::to_string( Location::east_wall_point.imag() ); 
+                loadTcharBuff();          
+                TextOut(hdc,1050, 270 , tcharBuff, strBuff.length() ); 
+
+                strBuff = "westX:  ";
+                strBuff += std::to_string( Location::west_wall_point.real() );
+                loadTcharBuff();          
+                TextOut(hdc,100, 270 , tcharBuff, strBuff.length() ); 
+
+                strBuff = "westY:  ";
+                strBuff += std::to_string( Location::west_wall_point.imag() );
+                loadTcharBuff();          
+                TextOut(hdc,350, 270 , tcharBuff, strBuff.length() ); 
+
+                DeleteDC(hdc);
+                hdc = NULL;
+                EndPaint(hWnd, &ps );
+
+                break;
+            }            
+
             if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) {
             
                 SendMessage( hWnd, WM_KEYDOWN, VK_F2, lParam );
@@ -892,7 +942,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             if( !TryEnterCriticalSection(&crtSec) ) goto donePaint;
 
-            pStateProperties->started = true;
+            //pStateProperties->started = true;
            
             pRenderTarget->CreateCompatibleRenderTarget(
                                                         D2D1::SizeF(rc.right, (rc.bottom) ),  
@@ -910,47 +960,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             pStateProperties->isLocation = false;
             renderWalls( std::complex<int>(pStateProperties->locX, pStateProperties->locY) );
+           
+
             /*
-            strBuff = "currentPgX:  ";
-            strBuff += std::to_string( (pStateProperties->locX + pStateProperties->mvX/10)/(rc.right/10)  );
-            loadTcharBuff();          
-            TextOut(hdc,100, 270 , tcharBuff, strBuff.length() ); 
-
-            strBuff = "currentPgY:  ";
-            strBuff += std::to_string( (pStateProperties->locY + (-pStateProperties->mvY/10))/(rc.bottom/10)    );
-            loadTcharBuff();          
-            TextOut(hdc,100, 370 , tcharBuff, strBuff.length() ); 
-
-            strBuff = "pageX:  ";
-            strBuff += std::to_string( pStateProperties->horizontalPg  );
-            loadTcharBuff();          
-            TextOut(hdc,250, 370 , tcharBuff, strBuff.length() ); 
-
-            strBuff = "pageY:  ";
-            strBuff += std::to_string( pStateProperties->verticalPg  );
-            loadTcharBuff();          
-            TextOut(hdc,400, 370 , tcharBuff, strBuff.length() ); 
-            
-            strBuff = "locY:  ";
-            strBuff += std::to_string( pStateProperties->locY  );
-            loadTcharBuff();          
-            TextOut(hdc,550, 370 , tcharBuff, strBuff.length() ); 
-
-            strBuff = "pStateProperties->itrCounts:  ";
-            strBuff += std::to_string( pStateProperties->itrCounts );
-            loadTcharBuff();          
-            TextOut(hdc,350, 270 , tcharBuff, strBuff.length() ); 
-
-            strBuff = "pStateProperties->width:  ";
-            strBuff += std::to_string( pStateProperties->width );
-            loadTcharBuff();          
-            TextOut(hdc,750, 270 , tcharBuff, strBuff.length() ); 
-
-            strBuff = "pStateProperties->height:  ";
-            strBuff += std::to_string( pStateProperties->height );
-            loadTcharBuff();          
-            TextOut(hdc,1050, 270 , tcharBuff, strBuff.length() ); 
-            
             strBuff = std::to_string( lpOverlapped.Offset );
             //strBuff = std::to_string( pMaze->GetPixelFormat().format );
             loadTcharBuff();          
@@ -971,7 +983,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             hdc = NULL;
             EndPaint(hWnd, &ps );
 
-            //pStateProperties->started = false;
             LeaveCriticalSection( &crtSec );
 
             donePaint:
@@ -1137,6 +1148,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             break;
         }
 
+        case WM_KEYUP: {
+        
+            switch ( wParam ) {
+            
+                default:
+                    break;
+
+                case VK_F12: {
+            
+                    pStateProperties->isF12 = false;
+
+                    InvalidateRect( hWnd, NULL, TRUE );
+                    UpdateWindow( hWnd );
+
+                    break;
+                }
+            }
+        
+            break;
+        }
+
         case WM_KEYDOWN:{
 
             switch( wParam ) {
@@ -1264,22 +1296,84 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             ++pStateProperties->itrCounts;
                             InvalidateRect( hWnd, NULL, TRUE );
                             UpdateWindow( hWnd );
-                            /*
-                            if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
-                                SendMessage( hWnd, WM_KEYDOWN, VK_F2, lParam );
-                            else
-                                goto refresh;
-                            */
                         }
 
                     doneF2:
                             
                             if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
                                 break;
-                            else
-                                goto refreshMaze;                        
+                            else{
+                            
+                                Common::Maze::rows = pStateProperties->height;
+                                Common::Maze::cols = pStateProperties->width;
+                                goto refreshMaze;
+                            }
+                                                    
                             
                         break;                
+                }
+
+                case VK_F4: {               
+                    
+                    mkBSP:
+
+                        if( !pStateProperties->isF4 ) {
+                        
+                            if( !TryEnterCriticalSection(&crtSec) ) goto doneBSP;
+
+                                root = current_segment->build_tree(
+                                                                    std::complex<int>(1, Common::Maze::rows-2), 
+                                                                    std::complex<int>(Common::Maze::cols-2, 1)
+                                                        );
+
+                                BSP::Segment::upddate_parents(root.second);
+
+                                leaf_node = BSP::Segment::to_leaf(root.second, std::complex<int>(1, 1));                            
+
+                                pStateProperties->isF4 = true;
+                                LeaveCriticalSection( &crtSec );
+                                //InvalidateRect( hWnd, NULL, TRUE );
+                                //UpdateWindow( hWnd );
+                        
+                        }
+
+                   updateBSP:
+
+                        if( !TryEnterCriticalSection(&crtSec) ) goto doneBSP;
+
+                            if( pStateProperties->isF4 ){
+                
+                                //start = std::chrono::system_clock::now();
+                                Common::Location::reset();
+                                int localX   = pStateProperties->locX;
+                                int localY   = pStateProperties->locY;
+                                int localMvX = pStateProperties->mvX;
+                                int localMvY = pStateProperties->mvY;
+
+                                leaf_node = BSP::Segment::to_leaf(root.second, std::complex<int>(
+                                                                                                 localX + localMvX/10,
+                                                                                                 localY - localMvY/10
+                                                                                )
+                                                          );
+
+                                BSP::Segment::update_location_walls(
+                                                                    leaf_node, 
+                                                                    std::complex<int>( localX + localMvX/10, localY - localMvY/10),
+                                                                    Common::Maze::rows,
+                                                                    Common::Maze::cols
+                                              );
+
+                                //end = std::chrono::system_clock::now();                
+
+                            }
+
+                            LeaveCriticalSection( &crtSec );
+                            InvalidateRect( hWnd, NULL, TRUE );
+                            UpdateWindow( hWnd );
+
+                    doneBSP:
+
+                         break;  
                 }
 
                 case VK_F5: {               
@@ -1321,6 +1415,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         break;  
                 } 
 
+
+                case VK_F12: {               
+                    
+                    info:
+
+                        if( !pStateProperties->isF12 ) {
+                        
+                            if( !TryEnterCriticalSection(&crtSec) ) goto doneInfo;
+
+                                pStateProperties->isF12 = true;
+
+                                LeaveCriticalSection( &crtSec );
+                                InvalidateRect( hWnd, NULL, TRUE);
+                                UpdateWindow( hWnd );                        
+                        } 
+
+
+                            
+                    doneInfo:
+                          
+                        break;  
+                } 
                 //will toggle location
                 case VK_SPACE: {
                                
@@ -1389,6 +1505,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     }
                     else        
                         CloseHandle(hFile);
+
                     break;                
                 }
 
@@ -1402,6 +1519,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             PostQuitMessage(0);
             delete(pStateProperties);
             DeleteCriticalSection(&crtSec);
+
+            delete current_segment;
+            delete naive_obj;
+            delete root.second;
             break;        
         }
 
