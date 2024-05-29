@@ -25,7 +25,9 @@ the functionality of maze scrolling.
 # Implemented functionality of BSPMaze.exe 
 ~~`First runs`--------------prints time;~~\
 `F2`-----------------------current dir has maze.pnm ? prints the contents : "No input file.";\
-`F5`-----------------------cleans all;\
+`F4`-----------------------update BSP;\
+`F5`-----------------------refresh;\
 `F8`-----------------------glancing mode;\
-`↑↓→←`--------------purple moves\
-`Alt+↑↓→←`--------------Scrolls screen (only under glancing mode)
+`F12`-----------------------holding for info;\
+`↑↓→←`--------------------purple moves\
+`Alt+↑↓→←`----------------Scrolls screen (only under glancing mode)
