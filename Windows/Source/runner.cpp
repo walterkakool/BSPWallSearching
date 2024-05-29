@@ -553,12 +553,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         int diffPgX = pStateProperties->horizontalPg ? 1 : 0; 
         int diffPgY = pStateProperties->verticalPg   ? 1 : 0;
 
-        int localMvX = pStateProperties->mvX;
+        int localMvX = ( ( (pStateProperties->mvX/10 % (rc.right/10- diffPgX) ) )*10 ) * !diffPgX
+                                                   +
+                       diffPgX * ( ( ( (pStateProperties->mvX/10 - (rc.right/10 - diffPgY) ) % (rc.right/10) ) ) * 10 -10 );
 
         int localMvY = ( ( (pStateProperties->mvY/10 % (rc.bottom/10- diffPgY) ) )*10 + 5 ) * !diffPgY
                                                    +
-                                                   //diffPgY  * 14 
-                                                   //+
                        diffPgY * ( ( ( (pStateProperties->mvY/10 + (rc.bottom/10 - diffPgY) ) % (rc.bottom/10) ) ) * 10 + 15);
 
         pRenderTarget->BeginDraw();
