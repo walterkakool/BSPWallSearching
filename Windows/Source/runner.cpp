@@ -741,11 +741,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     
      };
      
-     std::function<void( )> updateBSP=[ &pStateProperties ]() {
+     std::function<void( )> upgradeBSP=[ &pStateProperties ]() {
 
         mkBSP:
 
-            if( !pStateProperties->isF4 ) {
+            if( !pStateProperties->isF4 && Common::Maze::cols > 0 ) {
                         
                 if( !TryEnterCriticalSection(&crtSec) ) goto doneBSP;
 
@@ -1046,11 +1046,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 DeleteDC(hdcMem);
 
                 hdc = NULL;
-                
-                //updateBSP();
 
                 SendMessage( hWnd, WM_KEYDOWN, VK_SPACE, lParam );
-
                 break;
         }      
 
@@ -1502,6 +1499,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     else        
                         CloseHandle(hFile);
 
+                    upgradeBSP();
                     break;                
                 }
 
