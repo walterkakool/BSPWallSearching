@@ -556,7 +556,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         int localMvX = ( ( (pStateProperties->mvX/10 % (rc.right/10- diffPgX) ) )*10 ) * !diffPgX
                                                    +
-                       diffPgX * ( ( ( (pStateProperties->mvX/10 - (rc.right/10 - diffPgY) ) % (rc.right/10) ) ) * 10 -10 );
+                       diffPgX * ( ( ( (pStateProperties->mvX/10 - (rc.right/10 - diffPgX) ) % (rc.right/10) ) ) * 10 -10 );
 
         int localMvY = ( ( (pStateProperties->mvY/10 % (rc.bottom/10- diffPgY) ) )*10 + 5 ) * !diffPgY
                                                    +
