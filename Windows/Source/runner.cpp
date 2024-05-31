@@ -1155,11 +1155,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                     //pStateProperties->started = true;
 
-                    pStateProperties->verticalPg = pStateProperties->verticalPg < pStateProperties->height/( (rc.bottom)/10)+1 
-                                                                    ?
-                                                                    ++pStateProperties->verticalPg
-                                                                    :
-                                                                    pStateProperties->verticalPg;
+                    pStateProperties->verticalPg = ( pStateProperties->verticalPg + 1 ) * (rc.bottom/10) < pStateProperties->height 
+                                                                                        ?
+                                                                                        ++pStateProperties->verticalPg
+                                                                                        :
+                                                                                        pStateProperties->verticalPg;
 
                     //pStateProperties->started = false;
                     LeaveCriticalSection(&crtSec);
@@ -1208,11 +1208,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         goto doneRight;
                     //pStateProperties->started = true;
 
-                    pStateProperties->horizontalPg = pStateProperties->horizontalPg < pStateProperties->width/(rc.right/10)+1 
-                                                                    ?
-                                                                    ++pStateProperties->horizontalPg
-                                                                    :
-                                                                    pStateProperties->horizontalPg;
+                    pStateProperties->horizontalPg = ( pStateProperties->horizontalPg + 1 ) * (rc.right/10)< pStateProperties->width 
+                                                                                            ?
+                                                                                            ++pStateProperties->horizontalPg
+                                                                                            :
+                                                                                            pStateProperties->horizontalPg;
 
                     //pStateProperties->started = false;
                     LeaveCriticalSection(&crtSec);
@@ -1385,9 +1385,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
                                 break;
                             else{
-                            
+
                                 Common::Maze::rows = pStateProperties->height;
                                 Common::Maze::cols = pStateProperties->width;
+
+                                Common::Maze::rows -= Common::Maze::rows % (rc.bottom/10);
+                                Common::Maze::cols -= Common::Maze::cols % (rc.right /10);
+
+                                pStateProperties->height = Common::Maze::rows;
+                                pStateProperties->width  = Common::Maze::cols;
+
                                 goto refreshMaze;
                             }
                                                     
@@ -1464,7 +1471,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         if( !TryEnterCriticalSection(&crtSec) ) goto doneF5;
 
-                            //pStateProperties->started = true;
+                            
+                            for( int i = 0; i < pStateProperties->width; ++i )
+                                Common::Maze::maze[ Common::Maze::rows-1 ][i] = 1;
+
+                            for( int i = 0; i < pStateProperties->height; ++i )
+                                Common::Maze::maze[i][ Common::Maze::cols-1 ] = 1;
 
                             ProgramProperties::rstIterator(*pStateProperties);
                             lpOverlapped = {0}; 
