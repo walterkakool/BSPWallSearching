@@ -105,6 +105,8 @@ std::pair<bool, BSP::Segment*> root;
 BSP::Segment*                  leaf_node;
 Common::Naive*                 naive_obj;
 
+int useBSP;
+
 void clnBuffs(TCHAR tcharBuff[], char buffMaze[], string &strBuff );
 
 VOID CALLBACK ContentRoutine(
@@ -299,7 +301,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
 
    clnBuffs( tcharBuff, buffMaze, strBuff );
    
-   int use_BSP = 1;    
+   useBSP = 1;    
    naive_obj = new Common::Naive();
    current_segment= new BSP::Segment();
     
@@ -535,6 +537,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         pBitmapRenderTarget->GetBitmap(&pMaze);
     };
 
+     std::function<std::complex<int>( std::complex<int> )> convertLoc = [&pStateProperties](std::complex<int> location){
+     
+        bool onPg = (location.real() ) / ( rc.right/10  )  
+                                        ==  
+                      pStateProperties->horizontalPg
+
+                                    &&
+
+                      ( location.imag() ) / ( rc.bottom/10 ) 
+                                        ==
+                      pStateProperties->verticalPg;         
+
+        std::complex<int> outLoc = onPg
+                                    ? 
+                                    std::complex<int>( 
+                                                       location.real() % (rc.right/10) * 10, 
+                                                       ( (rc.bottom/10) - location.imag() % (rc.bottom/10) )* 10
+                                    )
+                                    :
+                                    std::complex<int>( rc.right, -rc.bottom );
+
+        return outLoc;
+     };
+
     std::function<void( std::complex<int> )> renderWalls = [ 
                                                             &pStateProperties,
                                                             &pRenderTarget, 
@@ -546,7 +572,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                             &hWnd,
                                                             &fullRc,
                                                             &paint_sz,
-                                                            &pFactory] ( std::complex<int> location ) { 
+                                                            &pFactory,
+                                                            &convertLoc] ( std::complex<int> location ) { 
 
         int localX = location.real() * 10;
         int localY = (((pStateProperties->height-1)-location.imag()) %( (rc.bottom) /10)) *10;
@@ -577,7 +604,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         
 
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(localMvX, localMvY) );
-
             pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Purple ), &pBrush );
 
             set_rectangle_location( 
@@ -592,10 +618,67 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             pBrush->Release();
             pBrush = NULL;
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Identity() );
 
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(
+                                                                        convertLoc( Common::Location::north_wall_point ).real(),
+                                                                        convertLoc( Common::Location::north_wall_point ).imag() -5
+                                         ) 
+            );
 
+            pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Red ), &pBrush );
+            set_rectangle_location( 0, 0, 10,10 );
+
+            pRenderTarget->FillRectangle( rectangle, pBrush); 
+
+            pBrush->Release();
+            pBrush = NULL;
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Identity() );
+
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(
+                                                                        convertLoc( Common::Location::south_wall_point ).real(),
+                                                                        convertLoc( Common::Location::south_wall_point ).imag() -5
+                                         ) 
+            );
+
+            pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Blue ), &pBrush );
+            set_rectangle_location( 0, 0, 10,10 );
+
+            pRenderTarget->FillRectangle( rectangle, pBrush); 
+
+            pBrush->Release();
+            pBrush = NULL;
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Identity() );
+
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(
+                                                                        convertLoc( Common::Location::east_wall_point ).real(),
+                                                                        convertLoc( Common::Location::east_wall_point ).imag() -5
+                                         ) 
+            );
+
+            pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Green ), &pBrush );
+            set_rectangle_location( 0, 0, 10,10 );
+
+            pRenderTarget->FillRectangle( rectangle, pBrush); 
+
+            pBrush->Release();
+            pBrush = NULL;
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Identity() );
         
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(
+                                                                        convertLoc( Common::Location::west_wall_point ).real(),
+                                                                        convertLoc( Common::Location::west_wall_point ).imag() -5
+                                         ) 
+            );
+
+            pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Brown ), &pBrush );
+            set_rectangle_location( 0, 0, 10,10 );
+
+            pRenderTarget->FillRectangle( rectangle, pBrush); 
+
+            pBrush->Release();
+            pBrush = NULL;
+            pRenderTarget->SetTransform( D2D1::Matrix3x2F::Identity() );
         }
 
         pRenderTarget->EndDraw();
@@ -798,7 +881,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         doneBSP:
             ;
      };
-    
+
     switch (message) {
 
         case WM_COMMAND: {
@@ -1258,6 +1341,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         break;                
                 }
 
+                case VK_TAB: {
+                
+                    ++useBSP %= 2;
+                    break;
+                }
+
                 //loads maze.pnm
                 case VK_F2:{
                 
@@ -1308,7 +1397,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 case VK_F4: {               
                     
-                    mkF4:
+                   mkF4:
 
                         if( !pStateProperties->isF4 ) {
                         
@@ -1432,75 +1521,93 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 } 
                 //will toggle location
                 case VK_SPACE: {
-                               
+                           
                     keySpace:
-                    D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED , &pFactory);
-
-                    pFactory->CreateHwndRenderTarget ( 
-                                D2D1::RenderTargetProperties(),  
-                                D2D1::HwndRenderTargetProperties(
-                                                                    hWnd, 
-                                                                    D2D1::SizeU(rc.right, (rc.bottom))
-                                ), 
-                                &pRenderTarget
-                    );
-
-                    pRenderTarget->CreateCompatibleRenderTarget(
-                                                                D2D1::SizeF(rc.right, (rc.bottom)),  
-                                                                &pBitmapRenderTarget
-                    );
-
-                    pBitmapRenderTarget->GetBitmap( &pMaze );
                     
-                    pMaze->CopyFromMemory( 
-                                           NULL,
-                                           lpBmp,
-                                           (bi.biWidth ) * 4 
-                    );
+                        if(useBSP) {
                     
+                            upgradeBSP();
 
-                    hdc = BeginPaint(hWnd, &ps );
+                        }
+                        else{
+                    
+                        }
 
-                    pStateProperties->isLocation = true;
+                        if( !TryEnterCriticalSection( &crtSec ) ) goto doneSpace;
+                        
+                        D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED , &pFactory);
 
-                    if ( pStateProperties->height )                        
-                        renderWalls( 
-                                    std::complex<int>(
-                                                        pStateProperties->locX, 
-                                                        pStateProperties->locY
-                                    )
+                        pFactory->CreateHwndRenderTarget ( 
+                                    D2D1::RenderTargetProperties(),  
+                                    D2D1::HwndRenderTargetProperties(
+                                                                        hWnd, 
+                                                                        D2D1::SizeU(rc.right, (rc.bottom))
+                                    ), 
+                                    &pRenderTarget
                         );
 
-                    DeleteDC(hdc);
-                    hdc = NULL;
-                    EndPaint(hWnd, &ps);
+                        pRenderTarget->CreateCompatibleRenderTarget(
+                                                                    D2D1::SizeF(rc.right, (rc.bottom)),  
+                                                                    &pBitmapRenderTarget
+                        );
 
-                    pFactory->Release();
-                    pFactory = NULL;
+                        pBitmapRenderTarget->GetBitmap( &pMaze );
+                    
+                        pMaze->CopyFromMemory( 
+                                               NULL,
+                                               lpBmp,
+                                               (bi.biWidth ) * 4 
+                        );
+                    
 
-                    pRenderTarget->Release();
-                    pRenderTarget = NULL;
+                        hdc = BeginPaint(hWnd, &ps );
+
+                        pStateProperties->isLocation = true;
+
+                        if ( pStateProperties->height )                        
+                            renderWalls( 
+                                        std::complex<int>(
+                                                            pStateProperties->locX, 
+                                                            pStateProperties->locY
+                                        )
+                            );
+
+                        DeleteDC(hdc);
+                        hdc = NULL;
+                        EndPaint(hWnd, &ps);
+
+                        pFactory->Release();
+                        pFactory = NULL;
+
+                        pRenderTarget->Release();
+                        pRenderTarget = NULL;
                 
-                    pBitmapRenderTarget->Release();
-                    pBitmapRenderTarget = NULL;
+                        pBitmapRenderTarget->Release();
+                        pBitmapRenderTarget = NULL;
                     
-                    pMaze->Release();
-                    pMaze = NULL;
+                        pMaze->Release();
+                        pMaze = NULL;
                     
-                    if( !pStateProperties->glancing && !ProgramProperties::pageMatched( *pStateProperties, (rc.bottom), rc.right ) ){
+                        if( !pStateProperties->glancing && !ProgramProperties::pageMatched( *pStateProperties, (rc.bottom), rc.right ) ){
                         
-                        CloseHandle(hFile);
+                            CloseHandle(hFile);
 
-                        pStateProperties->horizontalPg = (pStateProperties->locX + pStateProperties->mvX/10)/(rc.right/10);
-                        pStateProperties->verticalPg   = (pStateProperties->locY + (-pStateProperties->mvY/10))/( (rc.bottom) /10);
+                            pStateProperties->horizontalPg = (pStateProperties->locX + pStateProperties->mvX/10)/(rc.right/10);
+                            pStateProperties->verticalPg   = (pStateProperties->locY + (-pStateProperties->mvY/10))/( (rc.bottom) /10);
 
-                        SendMessage( hWnd, WM_KEYDOWN, VK_F5, lParam );
-                    }
-                    else        
-                        CloseHandle(hFile);
+                            LeaveCriticalSection( &crtSec );
+                            SendMessage( hWnd, WM_KEYDOWN, VK_F5, lParam );
+                        }
+                        else {
+                        
+                            LeaveCriticalSection( &crtSec );
+                            CloseHandle(hFile);
+                        }        
+                            
 
-                    upgradeBSP();
-                    break;                
+                    doneSpace:
+                   
+                        break;                
                 }
 
             }
