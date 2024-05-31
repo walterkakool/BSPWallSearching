@@ -24,11 +24,11 @@ the functionality of maze scrolling.
 
 # Implemented functionality of BSPMaze.exe 
 ~~`First runs`--------------prints time;~~\
-`F2`-----------------------current dir has maze.pnm ? prints the contents : "No input file.";\
-`F4`-----------------------update BSP;\
-`F5`-----------------------refresh;\
-`F8`-----------------------glancing mode;\
-`Delete`-----------------------holding for info;\
-`TAB`-----------------------BSP/Naive switch;\
-`↑↓→←`--------------------purple moves\
-`Alt+↑↓→←`----------------Scrolls screen (only under glancing mode)
+`F2`----------------------Current dir has maze.pnm ? prints the contents : "No input file.";\
+`F4`----------------------Update BSP (DEV debugging tool; will be removed soon);\
+`F5`----------------------Refresh;\
+`F8`----------------------Glancing/Normal mode switch;\
+`Delete`-----------------Holding for info;\
+`TAB`---------------------BSP/Naive switch;\
+`↑↓→←`--------------------Move purple location\
+`Alt+↑↓→←`---------------Scrolls screen (only under glancing mode)
