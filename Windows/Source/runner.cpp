@@ -1415,6 +1415,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 //loads maze.pnm
                 case VK_F2:{
                 
+                    if( !TryEnterCriticalSection(&crtSec) ) goto doneF2;
+
                     loadF2:
 
                         //if(pStateProperties->started) goto doneF2;
@@ -1445,7 +1447,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             UpdateWindow( hWnd );
                         }
 
-                    doneF2:
                             
                             if( lpOverlapped.OffsetHigh || lpOverlapped.Offset ) 
                                 break;
@@ -1460,9 +1461,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                 pStateProperties->height = Common::Maze::rows;
                                 pStateProperties->width  = Common::Maze::cols;
 
+                                LeaveCriticalSection(&crtSec);
                                 goto refreshMaze;
                             }
                                                     
+                    doneF2:
                             
                         break;                
                 }
