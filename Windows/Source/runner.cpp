@@ -107,6 +107,10 @@ Common::Naive*                 naive_obj;
 
 int useBSP;
 
+std::string time_cost_str;
+char*       time_cost_char;
+
+
 void clnBuffs(TCHAR tcharBuff[], char buffMaze[], string &strBuff );
 
 VOID CALLBACK ContentRoutine(
@@ -315,6 +319,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow){
    ProgramProperties::rstDimensions( *pStateProperties ); 
 
    InitializeCriticalSection(&crtSec);
+
+    time_cost_str  = "0";
+    time_cost_char = &time_cost_str[0];
 
    HWND hWnd = CreateWindowEx( 
                                 0,                      // no extended styles 
@@ -604,7 +611,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         
 
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(localMvX, localMvY) );
-            pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Purple ), &pBrush );
+
+            if(useBSP)
+                pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::Purple ), &pBrush );
+            else
+                pRenderTarget->CreateSolidColorBrush( D2D1::ColorF( D2D1::ColorF::MediumPurple ), &pBrush );
+
 
             set_rectangle_location( 
                                     localX, 
@@ -828,6 +840,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         mkBSP:
 
+            auto start = std::chrono::system_clock::now();
+            
             if( !pStateProperties->isF4 && Common::Maze::cols > 0 ) {
                         
                 if( !TryEnterCriticalSection(&crtSec) ) goto doneBSP;
@@ -878,8 +892,44 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 LeaveCriticalSection( &crtSec );
 
-        doneBSP:
-            ;
+       doneBSP:
+
+            auto end = std::chrono::system_clock::now();                
+            time_cost_str = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+            time_cost_char = &time_cost_str[0];
+     };
+
+     std::function<void( )> naiveScan=[ &pStateProperties ]() {
+
+
+        scanMaze:
+         
+            auto start = std::chrono::system_clock::now();
+
+            int localX   = pStateProperties->locX;
+            int localY   = pStateProperties->locY;
+            int localMvX = pStateProperties->mvX;
+            int localMvY = pStateProperties->mvY;
+
+            if( !TryEnterCriticalSection(&crtSec) ) goto doneNaive;
+                
+                
+                Common::Location::reset();
+
+                Location::point = std::complex<int>(
+                                                    localX + localMvX/10, 
+                                                    localY - localMvY/10 
+                                    );
+
+                naive_obj->update_walls();
+
+                LeaveCriticalSection( &crtSec );
+
+       doneNaive:
+
+            auto end = std::chrono::system_clock::now();                
+            time_cost_str = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+            time_cost_char = &time_cost_str[0];
      };
 
     switch (message) {
@@ -935,12 +985,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             
             if( pStateProperties->isDEL ){
             
-                hdc = BeginPaint(hWnd, &ps );   
+                hdc = BeginPaint(hWnd, &ps );  
 
-                strBuff = "southX:  ";
-                strBuff += std::to_string( Location::south_wall_point.real() );
+                strBuff = "Time cost in last wall-searching: ";
+                strBuff += time_cost_str;
+                strBuff += " ms";
                 loadTcharBuff();          
                 TextOut(hdc,100, 370 , tcharBuff, strBuff.length() ); 
+
+                strBuff = "Method: ";
+
+                strBuff += useBSP 
+                           ?
+                           "BSP"
+                           :
+                           "Naive";
+
+                loadTcharBuff();          
+                TextOut(hdc,550, 370 , tcharBuff, strBuff.length() ); 
+
+                /*
+
 
                 strBuff = "southY:  ";
                 strBuff += std::to_string( Location::south_wall_point.imag() );
@@ -976,7 +1041,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 strBuff += std::to_string( Location::west_wall_point.imag() );
                 loadTcharBuff();          
                 TextOut(hdc,350, 270 , tcharBuff, strBuff.length() ); 
-
+                */
                 DeleteDC(hdc);
                 hdc = NULL;
                 EndPaint(hWnd, &ps );
@@ -1542,7 +1607,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                         }
                         else{
-                    
+
+                            naiveScan();                    
                         }
 
                         if( !TryEnterCriticalSection( &crtSec ) ) goto doneSpace;
