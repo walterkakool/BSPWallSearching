@@ -22,7 +22,7 @@ Note: Please runs this under full-screen.
 This is the Windows version. Besides everything in the Linux version, it has\
 the functionality of maze scrolling.
 
-# Implemented functionality of BSPMaze.exe 
+# Implemented functionality of BSPMaze.exe (Ver 0.9)
 ~~`First runs`--------------prints time;~~\
 `F2`----------------------Current dir has maze.pnm ? prints the contents : "No input file.";\
 `F4`----------------------Update BSP (DEV debugging tool; will be removed soon);\
