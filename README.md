@@ -29,5 +29,6 @@ the functionality of maze scrolling.
 `F5`-----------------------refresh;\
 `F8`-----------------------glancing mode;\
 `Delete`-----------------------holding for info;\
+`TAB`-----------------------BSP/Naive switch;\
 `↑↓→←`--------------------purple moves\
 `Alt+↑↓→←`----------------Scrolls screen (only under glancing mode)
