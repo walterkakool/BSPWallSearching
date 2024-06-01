@@ -22,7 +22,7 @@ Note: Please runs this under full-screen.
 This is the Windows version. Besides everything in the Linux version, it has\
 the functionality of maze scrolling.
 
-# Implemented functionality of BSPMaze.exe (Ver 0.9)
+# Implemented functionality of BSPMaze.exe (Ver 0.95)
 • Download EXEPack.zip.\
 • Copy-paste BSPMaze.exe and maze.txt into the same dir; then run it.\
 `F2`----------------------Current dir has maze.pnm ? prints the contents : "No input file.";\
@@ -33,4 +33,5 @@ the functionality of maze scrolling.
 `TAB`---------------------BSP/Naive switch;\
 `↑↓→←`--------------------Move purple location\
 `Alt+↑↓→←`---------------Scrolls screen (only under glancing mode)\
-`Alt+ -/+`---------------Adjust location for alignments
+`Alt+ -/+`---------------Adjust location for alignments\
+`-/+`--------------------Adjust 4 walls for alignments
