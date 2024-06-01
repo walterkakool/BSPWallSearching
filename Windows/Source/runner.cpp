@@ -1221,7 +1221,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 default:
                     break;
 
-                case VK_OEM_PLUS:{
+                case 0x51:{ // Key Q
 
                     if( !TryEnterCriticalSection(&crtSec) ) 
                         goto doneUp;
@@ -1236,7 +1236,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     break;
                 }
 
-                case VK_OEM_MINUS:{
+                case 0x41:{ // Key A
 
                     if( !TryEnterCriticalSection(&crtSec) ) 
                         goto doneDown;
@@ -1244,6 +1244,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     //pStateProperties->started = true;
 
                    ++pStateProperties->adjustLocY;
+
+                    //pStateProperties->started = false;
+                    LeaveCriticalSection(&crtSec);
+                    goto refreshMaze;
+                    break;
+                }
+
+                case VK_OEM_PLUS:{ 
+
+                    if( !TryEnterCriticalSection(&crtSec) ) 
+                        goto doneUp;
+
+                    //pStateProperties->started = true;
+
+                    --pStateProperties->adjustLocY;
+
+                    //pStateProperties->started = false;
+                    LeaveCriticalSection(&crtSec);
+                    goto refreshMaze;
+                    break;
+                }
+                               
+                case VK_OEM_MINUS:{ 
+
+                    if( !TryEnterCriticalSection(&crtSec) ) 
+                        goto doneDown;
+
+                    //pStateProperties->started = true;
+
+                    ++pStateProperties->adjustLocY;
 
                     //pStateProperties->started = false;
                     LeaveCriticalSection(&crtSec);
@@ -1355,7 +1385,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 default:
                     break;
 
-                case VK_OEM_PLUS:{
+                case 0x51:{ //Key Q
 
                     if( !TryEnterCriticalSection(&crtSec) ) 
                         goto doneUp;
@@ -1370,7 +1400,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     break;
                 }
 
-                case VK_OEM_MINUS:{
+                case 0x41:{ //Key A
+
+                    if( !TryEnterCriticalSection(&crtSec) ) 
+                        goto doneDown;
+
+                    //pStateProperties->started = true;
+
+                   ++pStateProperties->adjustWallsY;
+
+                    //pStateProperties->started = false;
+                    LeaveCriticalSection(&crtSec);
+                    goto refreshMaze;
+                    break;
+                }
+
+                case VK_OEM_PLUS:{ 
+
+                    if( !TryEnterCriticalSection(&crtSec) ) 
+                        goto doneUp;
+
+                    //pStateProperties->started = true;
+
+                    --pStateProperties->adjustWallsY;
+
+                    //pStateProperties->started = false;
+                    LeaveCriticalSection(&crtSec);
+                    goto refreshMaze;
+                    break;
+                }
+
+                case VK_OEM_MINUS:{ 
 
                     if( !TryEnterCriticalSection(&crtSec) ) 
                         goto doneDown;
