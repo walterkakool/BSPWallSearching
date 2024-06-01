@@ -34,4 +34,6 @@ the functionality of maze scrolling.
 `↑↓→←`--------------------Move purple location\
 `Alt+↑↓→←`---------------Scrolls screen (only under glancing mode)\
 `Alt+ q/a`---------------Adjust location for alignments\
-`q/a`--------------------Adjust 4 walls for alignments
+`q/a`--------------------Adjust 4 walls for alignments\
+`-/+`---------------Adjust location for alignments\
+`ALT + -/+`--------------------Adjust 4 walls for alignments
