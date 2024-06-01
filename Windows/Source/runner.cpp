@@ -1430,7 +1430,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             pStateProperties->f2path [i] = tcharBuff [i];
 
                         //clnBuffs( tcharBuff, buffMaze, strBuff );
-                        strBuff = "\\maze.pnm";
+                        strBuff = "\\maze.txt";
                         if(TryEnterCriticalSection(&crtSec) ){
 
                             loadMaze();
