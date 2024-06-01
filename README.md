@@ -23,7 +23,8 @@ This is the Windows version. Besides everything in the Linux version, it has\
 the functionality of maze scrolling.
 
 # Implemented functionality of BSPMaze.exe (Ver 0.9)
-Copy-paste BSPMaze.exe and maze.txt into the same dir; then run it.\
+• Download EXEPack.zip.\
+• Copy-paste BSPMaze.exe and maze.txt into the same dir; then run it.\
 `F2`----------------------Current dir has maze.pnm ? prints the contents : "No input file.";\
 `F4`----------------------Update BSP (DEV debugging tool; will be removed soon);\
 `F5`----------------------Refresh;\
