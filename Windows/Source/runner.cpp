@@ -592,7 +592,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                                                    +
                        diffPgX * ( ( ( (pStateProperties->mvX/10 - (rc.right/10 - diffPgX) ) % (rc.right/10) ) ) * 10 -10 );
 
-        int localMvY = ( ( (pStateProperties->mvY/10 % (rc.bottom/10- diffPgY) ) )*10 + 5 ) * !diffPgY
+        int localMvY = ( ( (pStateProperties->mvY/10 % (rc.bottom/10- diffPgY) ) )*10 + pStateProperties->adjustY ) * !diffPgY
                                                    +
                        diffPgY * ( ( ( (pStateProperties->mvY/10 + (rc.bottom/10 - diffPgY) ) % (rc.bottom/10) ) ) * 10 + 15);
 
@@ -1212,6 +1212,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                 default:
                     break;
+
+                case VK_OEM_PLUS:{
+
+                    if( !TryEnterCriticalSection(&crtSec) ) 
+                        goto doneUp;
+
+                    //pStateProperties->started = true;
+
+                    --pStateProperties->adjustY;
+
+                    //pStateProperties->started = false;
+                    LeaveCriticalSection(&crtSec);
+                    goto refreshMaze;
+                    break;
+                }
+
+                case VK_OEM_MINUS:{
+
+                    if( !TryEnterCriticalSection(&crtSec) ) 
+                        goto doneDown;
+
+                    //pStateProperties->started = true;
+
+                   ++pStateProperties->adjustY;
+
+                    //pStateProperties->started = false;
+                    LeaveCriticalSection(&crtSec);
+                    goto refreshMaze;
+                    break;
+                }
 
                 case VK_UP:{
 
