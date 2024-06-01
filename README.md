@@ -32,4 +32,5 @@ the functionality of maze scrolling.
 `Delete`-----------------Holding for info;\
 `TAB`---------------------BSP/Naive switch;\
 `↑↓→←`--------------------Move purple location\
-`Alt+↑↓→←`---------------Scrolls screen (only under glancing mode)
+`Alt+↑↓→←`---------------Scrolls screen (only under glancing mode)\
+`Alt+ -/+`---------------Adjust location for alignments
