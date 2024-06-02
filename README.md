@@ -33,7 +33,7 @@ the functionality of maze scrolling.
 `TAB`---------------------BSP/Naive switch;\
 `↑↓→←`--------------------Move purple location\
 `Alt+↑↓→←`---------------Scrolls screen (only under glancing mode)\
-`Alt+ q/a`---------------Adjust location for alignments\
-`q/a`--------------------Adjust 4 walls for alignments\
+`Alt+ ,/.`---------------Adjust x-location for alignments\
+`,/.`--------------------Adjust 4 walls x-location for alignments\
 `-/+`---------------Adjust location for alignments\
 `ALT + -/+`--------------------Adjust 4 walls for alignments
