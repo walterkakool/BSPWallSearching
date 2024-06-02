@@ -588,13 +588,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         int diffPgX = pStateProperties->horizontalPg ? 1 : 0; 
         int diffPgY = pStateProperties->verticalPg   ? 1 : 0;
 
-        int localMvX = ( ( (pStateProperties->mvX/10 % (rc.right/10- diffPgX) ) )*10 ) * !diffPgX
+        int localMvX = ( ( (pStateProperties->mvX/10 % (rc.right/10- diffPgX) ) )*10 + pStateProperties->adjustLocX ) * !diffPgX
                                                    +
-                       diffPgX * ( ( ( (pStateProperties->mvX/10 - (rc.right/10 - diffPgX) ) % (rc.right/10) ) ) * 10 -10 );
+                       ( pStateProperties->adjustLocX + ( ( (pStateProperties->mvX/10 - (rc.right/10 - diffPgX) ) % (rc.right/10) ) ) * 10 -10 )
+                                                                                        * 
+                                                                                        diffPgX;
 
         int localMvY = ( ( (pStateProperties->mvY/10 % (rc.bottom/10- diffPgY) ) )*10 + pStateProperties->adjustLocY ) * !diffPgY
                                                    +
-                       ( ( ( (pStateProperties->mvY/10 + (rc.bottom/10 - diffPgY) ) % (rc.bottom/10) ) ) * 10 + pStateProperties->adjustLocY) 
+                       ( pStateProperties->adjustLocY + ( ( (pStateProperties->mvY/10 + (rc.bottom/10 - diffPgY) ) % (rc.bottom/10) ) ) * 10 ) 
                                                                                         * 
                                                                                         diffPgY;
 
@@ -635,7 +637,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Identity() );
 
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(
-                                                                        convertLoc( Common::Location::north_wall_point ).real(),
+                                                                        convertLoc( Common::Location::north_wall_point ).real() 
+                                                                                                    +   
+                                                                                                    pStateProperties->adjustWallsX,
+
                                                                         convertLoc( Common::Location::north_wall_point ).imag() 
                                                                                                     +
                                                                                                     pStateProperties->adjustWallsY
@@ -652,7 +657,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Identity() );
 
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(
-                                                                        convertLoc( Common::Location::south_wall_point ).real(),
+                                                                        convertLoc( Common::Location::south_wall_point ).real()    
+                                                                                                    +   
+                                                                                                    pStateProperties->adjustWallsX,
+
                                                                         convertLoc( Common::Location::south_wall_point ).imag() 
                                                                                                     +
                                                                                                     pStateProperties->adjustWallsY
@@ -669,7 +677,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Identity() );
 
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(
-                                                                        convertLoc( Common::Location::east_wall_point ).real(),
+                                                                        convertLoc( Common::Location::east_wall_point ).real() 
+                                                                                                    +   
+                                                                                                    pStateProperties->adjustWallsX,
+
                                                                         convertLoc( Common::Location::east_wall_point ).imag() 
                                                                                                     +
                                                                                                     pStateProperties->adjustWallsY
@@ -686,7 +697,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Identity() );
         
             pRenderTarget->SetTransform( D2D1::Matrix3x2F::Translation(
-                                                                        convertLoc( Common::Location::west_wall_point ).real(),
+                                                                        convertLoc( Common::Location::west_wall_point ).real() 
+                                                                                                    +   
+                                                                                                    pStateProperties->adjustWallsX,
+
                                                                         convertLoc( Common::Location::west_wall_point ).imag() 
                                                                                                     +
                                                                                                     pStateProperties->adjustWallsY
@@ -1223,14 +1237,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 default:
                     break;
 
-                case 0x51:{ // Key Q
+                case VK_OEM_COMMA:{ 
 
                     if( !TryEnterCriticalSection(&crtSec) ) 
-                        goto doneUp;
+                        goto doneLeft;
 
                     //pStateProperties->started = true;
 
-                    --pStateProperties->adjustLocY;
+                    --pStateProperties->adjustLocX;
 
                     //pStateProperties->started = false;
                     LeaveCriticalSection(&crtSec);
@@ -1238,14 +1252,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     break;
                 }
 
-                case 0x41:{ // Key A
+                case VK_OEM_PERIOD:{ // Key A
 
                     if( !TryEnterCriticalSection(&crtSec) ) 
-                        goto doneDown;
+                        goto doneRight;
 
                     //pStateProperties->started = true;
 
-                   ++pStateProperties->adjustLocY;
+                   ++pStateProperties->adjustLocX;
 
                     //pStateProperties->started = false;
                     LeaveCriticalSection(&crtSec);
@@ -1387,14 +1401,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 default:
                     break;
 
-                case 0x51:{ //Key Q
+                case VK_OEM_COMMA:{ 
 
                     if( !TryEnterCriticalSection(&crtSec) ) 
-                        goto doneUp;
+                        goto doneLeft;
 
                     //pStateProperties->started = true;
 
-                    --pStateProperties->adjustWallsY;
+                    --pStateProperties->adjustWallsX;
 
                     //pStateProperties->started = false;
                     LeaveCriticalSection(&crtSec);
@@ -1402,14 +1416,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     break;
                 }
 
-                case 0x41:{ //Key A
+                case VK_OEM_PERIOD:{ 
 
                     if( !TryEnterCriticalSection(&crtSec) ) 
-                        goto doneDown;
+                        goto doneRight;
 
                     //pStateProperties->started = true;
 
-                   ++pStateProperties->adjustWallsY;
+                   ++pStateProperties->adjustWallsX;
 
                     //pStateProperties->started = false;
                     LeaveCriticalSection(&crtSec);
