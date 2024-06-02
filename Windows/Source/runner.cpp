@@ -594,7 +594,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         int localMvY = ( ( (pStateProperties->mvY/10 % (rc.bottom/10- diffPgY) ) )*10 + pStateProperties->adjustLocY ) * !diffPgY
                                                    +
-                       diffPgY * ( ( ( (pStateProperties->mvY/10 + (rc.bottom/10 - diffPgY) ) % (rc.bottom/10) ) ) * 10 + 15);
+                       ( ( ( (pStateProperties->mvY/10 + (rc.bottom/10 - diffPgY) ) % (rc.bottom/10) ) ) * 10 + pStateProperties->adjustLocY) 
+                                                                                        * 
+                                                                                        diffPgY;
 
         pRenderTarget->BeginDraw();
         pRenderTarget->Clear( D2D1::ColorF( D2D1::ColorF::White ) ); 
