@@ -31,9 +31,9 @@ the functionality of maze scrolling.
 `F8`----------------------Glancing/Normal mode switch;\
 `Delete`-----------------Holding for info;\
 `TAB`---------------------BSP/Naive switch;\
-`↑↓→←`--------------------Move purple location\
-`Alt+↑↓→←`---------------Scrolls screen (only under glancing mode)\
-`Alt+ ,/.`---------------Adjust x-location for alignments\
+`↑↓←→`--------------------Move purple location\
+`Alt + ↑↓←→`---------------Scrolls screen (only under glancing mode)\
+`Alt + ,/.`---------------Adjust x-location for alignments\
 `,/.`--------------------Adjust 4 walls x-location for alignments\
 `-/+`---------------Adjust location for alignments\
 `ALT + -/+`--------------------Adjust 4 walls for alignments
