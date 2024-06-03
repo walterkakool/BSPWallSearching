@@ -40,7 +40,7 @@ the functionality of maze scrolling.
 `,/.`  Adjusts the alignments for the four-walls location along x-axis.\
 `-/+`  Adjusts the alignments for the four-walls location along y-axis.\
 
-# Guides for using MazeRandomizer.ext
+# Guides for using MazeRandomizer.exe
 Runs it then a new maze.txt will be in the same dir.
 
 # Guides for modifying maze.txt
