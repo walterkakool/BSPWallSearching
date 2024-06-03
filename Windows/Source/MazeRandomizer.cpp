@@ -1,0 +1,72 @@
+// MazeRandomizer.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+#include <cmath>
+#include <complex>
+#include <vector>
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
+#include <time.h>
+#include <stdio.h>
+using namespace std;
+
+int main()
+{
+      ofstream fMaze ("maze.txt");
+      srand( (int)time(NULL) );
+      std::vector< std::complex<int> > givenPoints;  
+
+      for(int i = 0; i < 32; ++i) givenPoints.push_back( std::complex<int>( rand()%1020, rand()%1020 ) );
+      fMaze<<"P1 1024 1024 ";
+
+     std::complex<int> currentPoint(1,1); 
+      
+      for(int i = 0; i < 1024*1024; ++i){
+
+            
+            if( i/1024 == 1023 || i/1024 == 0 ){
+            
+                if( !(i%1024) )  //index 0
+                    fMaze<<"\n1";
+                else
+                fMaze<<"1";
+
+            }  else{
+            
+                if( !(i%1024) )  //index 0
+                    fMaze<<"\n1";
+                else{
+
+                currentPoint = std::complex<int> ( rand()%1024, rand()%1024 );
+
+                    for(int k = 0; k < 32; ++k) {
+
+                        if( currentPoint.real() == givenPoints[k].real() || currentPoint.imag() == givenPoints[k].imag() ) {
+                            
+                            fMaze<<"1";
+                            k = 32;
+                        }else if ( k == 31 ) fMaze<<"0"; 
+
+                    }
+                            
+                }
+            }
+
+
+             
+
+      }
+
+      fMaze.close();
+}
+
+// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
+// Debug program: F5 or Debug > Start Debugging menu
+
+// Tips for Getting Started: 
+//   1. Use the Solution Explorer window to add/manage files
+//   2. Use the Team Explorer window to connect to source control
+//   3. Use the Output window to see build output and other messages
+//   4. Use the Error List window to view errors
+//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
+//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
