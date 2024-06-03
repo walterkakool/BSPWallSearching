@@ -1015,7 +1015,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 strBuff += time_cost_str;
                 strBuff += " ms";
                 loadTcharBuff();          
-                TextOut(hdc,100, 370 , tcharBuff, strBuff.length() ); 
+                TextOut(hdc,550, 370 , tcharBuff, strBuff.length() ); 
 
                 strBuff = "Method: ";
 
@@ -1026,46 +1026,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                            "Naive";
 
                 loadTcharBuff();          
-                TextOut(hdc,550, 370 , tcharBuff, strBuff.length() ); 
+                TextOut(hdc,850, 370 , tcharBuff, strBuff.length() ); 
 
-                /*
-
-
-                strBuff = "southY:  ";
-                strBuff += std::to_string( Location::south_wall_point.imag() );
-                loadTcharBuff();          
-                TextOut(hdc,250, 370 , tcharBuff, strBuff.length() ); 
-
-                strBuff = "northX:  ";
+                strBuff = "NorthX: ";
                 strBuff += std::to_string( Location::north_wall_point.real()  );
                 loadTcharBuff();          
-                TextOut(hdc,400, 370 , tcharBuff, strBuff.length() ); 
+                TextOut(hdc,550, 270 , tcharBuff, strBuff.length() ); 
             
-                strBuff = "northY:  ";
+                strBuff = "NorthY: ";
                 strBuff += std::to_string( Location::north_wall_point.imag()  );
                 loadTcharBuff();          
-                TextOut(hdc,550, 370 , tcharBuff, strBuff.length() ); 
+                TextOut(hdc,850, 270 , tcharBuff, strBuff.length() ); 
 
-                strBuff = "eastX:  ";
-                strBuff += std::to_string( Location::east_wall_point.real() );
+                strBuff = "SouthX:  ";
+                strBuff += std::to_string( Location::south_wall_point.real() );
                 loadTcharBuff();          
-                TextOut(hdc,750, 270 , tcharBuff, strBuff.length() ); 
+                TextOut(hdc,550, 470 , tcharBuff, strBuff.length() ); 
 
-                strBuff = "eastY:  ";
-                strBuff += std::to_string( Location::east_wall_point.imag() ); 
+                strBuff = "SouthY:  ";
+                strBuff += std::to_string( Location::south_wall_point.imag() );
                 loadTcharBuff();          
-                TextOut(hdc,1050, 270 , tcharBuff, strBuff.length() ); 
+                TextOut(hdc,850, 470 , tcharBuff, strBuff.length() ); 
 
-                strBuff = "westX:  ";
+                strBuff = "WestX:  ";
                 strBuff += std::to_string( Location::west_wall_point.real() );
                 loadTcharBuff();          
-                TextOut(hdc,100, 270 , tcharBuff, strBuff.length() ); 
+                TextOut(hdc,50, 370 , tcharBuff, strBuff.length() ); 
 
-                strBuff = "westY:  ";
+                strBuff = "WestY:  ";
                 strBuff += std::to_string( Location::west_wall_point.imag() );
                 loadTcharBuff();          
-                TextOut(hdc,350, 270 , tcharBuff, strBuff.length() ); 
-                */
+                TextOut(hdc,150, 370 , tcharBuff, strBuff.length() ); 
+
+                strBuff = "EastX:  ";
+                strBuff += std::to_string( Location::east_wall_point.real() );
+                loadTcharBuff();          
+                TextOut(hdc,1050, 370 , tcharBuff, strBuff.length() ); 
+
+                strBuff = "EastY:  ";
+                strBuff += std::to_string( Location::east_wall_point.imag() ); 
+                loadTcharBuff();          
+                TextOut(hdc,1250, 370 , tcharBuff, strBuff.length() ); 
+
                 DeleteDC(hdc);
                 hdc = NULL;
                 EndPaint(hWnd, &ps );
@@ -1613,7 +1615,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             
                         break;                
                 }
-
+                /*
                 case VK_F4: {               
                     
                    mkF4:
@@ -1676,7 +1678,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                          break;  
                 }
-
+                */
                 case VK_F5: {               
                     
                     refreshMaze:
