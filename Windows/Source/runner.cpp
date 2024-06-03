@@ -48,8 +48,8 @@
 #include "components.hpp"
 #include "program_properties.cpp"
 
-#define BUFF_MAX        1024
-#define MAX_MAZE_WIDTH  211  
+#define BUFF_MAX        2048
+#define MAX_MAZE_WIDTH  1024  
 #define DWORD_MAX       4294967295 
 
 #define _USE_MATH_DEFINES
