@@ -44,4 +44,5 @@ the functionality of maze scrolling.
 • The height in the title line must be followed by a space. For example: `P1 1024 1024 `;\
 • The width must be exactly 1024; the height must be at least 1024;\
 • (1,1) which is on the bottom-left corner, must be 0;\
-• The top, bottom, right, and left boundaries must be all 1's.
+• The top, bottom, right, and left boundaries must be all 1's.\
+• Every displaying sub-page of the maze must be big enough to fully fill out the whole window. If it doesn't, the sub-page will be abandoned.  
