@@ -1561,6 +1561,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 //loads maze.pnm
                 case VK_F2:{
                 
+                    if( pStateProperties->height && !lpOverlapped.Offset ) goto doneF2;
                     if( !TryEnterCriticalSection(&crtSec) ) goto doneF2;
 
                     loadF2:
