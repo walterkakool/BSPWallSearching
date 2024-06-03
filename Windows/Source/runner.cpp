@@ -1616,70 +1616,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                             
                         break;                
                 }
-                /*
+                
                 case VK_F4: {               
                     
-                   mkF4:
+                    if( !pStateProperties->isF4 ) upgradeBSP();
 
-                        if( !pStateProperties->isF4 ) {
-                        
-                            if( !TryEnterCriticalSection(&crtSec) ) goto doneF4;
-
-                                root = current_segment->build_tree(
-                                                                    std::complex<int>(1, Common::Maze::rows-2), 
-                                                                    std::complex<int>(Common::Maze::cols-2, 1)
-                                                        );
-
-                                BSP::Segment::upddate_parents(root.second);
-
-                                leaf_node = BSP::Segment::to_leaf(root.second, std::complex<int>(1, 1));                            
-
-                                pStateProperties->isF4 = true;
-                                LeaveCriticalSection( &crtSec );
-                                //InvalidateRect( hWnd, NULL, TRUE );
-                                //UpdateWindow( hWnd );
-                        
-                        }
-
-                   updateF4:
-
-                        if( !TryEnterCriticalSection(&crtSec) ) goto doneF4;
-
-                            if( pStateProperties->isF4 ){
-                
-                                //start = std::chrono::system_clock::now();
-                                Common::Location::reset();
-                                int localX   = pStateProperties->locX;
-                                int localY   = pStateProperties->locY;
-                                int localMvX = pStateProperties->mvX;
-                                int localMvY = pStateProperties->mvY;
-
-                                leaf_node = BSP::Segment::to_leaf(root.second, std::complex<int>(
-                                                                                                 localX + localMvX/10,
-                                                                                                 localY - localMvY/10
-                                                                                )
-                                                          );
-
-                                BSP::Segment::update_location_walls(
-                                                                    leaf_node, 
-                                                                    std::complex<int>( localX + localMvX/10, localY - localMvY/10),
-                                                                    Common::Maze::rows,
-                                                                    Common::Maze::cols
-                                              );
-
-                                //end = std::chrono::system_clock::now();                
-
-                            }
-
-                            LeaveCriticalSection( &crtSec );
-                            //InvalidateRect( hWnd, NULL, TRUE );
-                            //UpdateWindow( hWnd );
-
-                    doneF4:
-
-                         break;  
+                    goto refreshMaze;
+                    break;  
                 }
-                */
+                
                 case VK_F5: {               
                     
                     refreshMaze:
@@ -1753,7 +1698,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     
                         if(useBSP) {
                     
-                            upgradeBSP();
+                            if(pStateProperties->isF4) upgradeBSP();
 
                         }
                         else{
