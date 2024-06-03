@@ -28,7 +28,6 @@ the functionality of maze scrolling.
 • Once you've pressed F2, wait until the colorful boxes are present.\
 • The purple one always starts at (1,1). If that doesn't align, use the hotkeys to align the five colorful boxes properly.\
 `F2`  Current dir has maze.txt ? prints the contents : nothing;\
-~~`F4`----------------------Update BSP (DEV debugging tool; will be removed soon);~~\
 `F5`  Refreshes;\
 `F8`  Glancing/Normal mode switch;\
 `Delete`  Holding for info;\
