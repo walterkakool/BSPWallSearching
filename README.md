@@ -2,7 +2,6 @@
 In the given maze, the four colors (red, green, blue, brown) indicate the four closest walls\
 for the current location (purple). "time cost" indicates the calculation time.\
 When it's dark purple, the current Method is BSP; otherwise, it scans the whole maze every single time.  
-THIS VERSION HAS BEEN DONE.
 
 # How to run the Linux version
 Note: Please runs this under full-screen.
