@@ -11,13 +11,13 @@ using namespace std;
 int main()
 {
       ofstream fMaze ("maze.txt");
-      srand( (int)time(NULL) );
-      std::vector< std::complex<int> > givenPoints;  
+      srand( (unsigned int)time(NULL) );
+      std::vector< std::complex<unsigned int> > givenPoints;  
 
-      for(int i = 0; i < 32; ++i) givenPoints.push_back( std::complex<int>( rand()%1020, rand()%1020 ) );
+      for(int i = 0; i < 32; ++i) givenPoints.push_back( std::complex<unsigned int>( rand()%1020, rand()%1020 ) );
       fMaze<<"P1 1024 1024 ";
 
-     std::complex<int> currentPoint(1,1); 
+     std::complex<unsigned int> currentPoint(1,1); 
       
       for(int i = 0; i < 1024*1024; ++i){
 
@@ -35,7 +35,7 @@ int main()
                     fMaze<<"\n1";
                 else{
 
-                currentPoint = std::complex<int> ( rand()%1024, rand()%1024 );
+                currentPoint = std::complex<unsigned int> ( rand()%1024, rand()%1024 );
 
                     for(int k = 0; k < 32; ++k) {
 
