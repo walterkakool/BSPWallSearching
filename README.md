@@ -27,7 +27,7 @@ the functionality of maze scrolling.
 # Guides for Running BSPMaze.exe (Ver. 1.00)
 • Download EXEPack.zip.\
 • Copy-paste BSPMaze.exe and maze.txt into the same dir; then run it.\
-• Once you've pressed F2, wait until the colorful boxes are present.\
+• Once you've pressed F4, wait until the colorful boxes are present.\
 • The purple one always starts at (1,1). If that doesn't align, use the hotkeys to align the five colorful boxes properly.\
 `F2`  Current dir has maze.txt ? prints the contents : nothing;\
 `F4`  Initializes BSP tree; showing five colorful boxes means the process is done;\
