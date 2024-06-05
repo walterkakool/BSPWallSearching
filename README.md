@@ -20,11 +20,7 @@ Note: Please runs this under full-screen.\
 `./compiles`\
 `./WalterKakool/bin/demo`
 
-# BSPMaze.exe goals
-This is the Windows version. Besides everything in the Linux version, it has\
-the functionality of maze scrolling.
-
-# Guides for Running BSPMaze.exe (Ver. 1.00)
+# BSPMaze.exe Guide (Ver. 1.00)
 • Download EXEPack.zip.\
 • Copy-paste BSPMaze.exe and maze.txt into the same dir; then run it.\
 • Once you've pressed F4, wait until the colorful boxes are present.\
