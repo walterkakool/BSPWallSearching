@@ -23,8 +23,10 @@ Note: Please runs this under full-screen.\
 # BSPMaze.exe Guide (Ver. 1.00)
 • Download EXEPack.zip.\
 • Copy-paste BSPMaze.exe and maze.txt into the same dir; then run it.\
+• Press F2 to input maze.txt. Wait until the purple is present.\
 • Once you've pressed F4, wait until the colorful boxes are present.\
 • The purple one always starts at (1,1). If that doesn't align, use the hotkeys to align the five colorful boxes properly.\
+• You might need to re-align the purple outside the first page.\
 `F2`  Current dir has maze.txt ? prints the contents : nothing;\
 `F4`  Initializes BSP tree; showing five colorful boxes means the process is done;\
 `F5`  Refreshes;\
