@@ -40,7 +40,7 @@ the functionality of maze scrolling.
 `Alt + ,/.`  Adjusts the alignments for the purple location along x-axis.\
 `ALT + -/+`  Adjusts the alignments for the purple location along y-axis.\
 `,/.`  Adjusts the alignments for the four-walls location along x-axis.\
-`-/+`  Adjusts the alignments for the four-walls location along y-axis.\
+`-/+`  Adjusts the alignments for the four-walls location along y-axis.
 
 # Guides for using MazeRandomizer.exe
 Runs it then a new maze.txt will be in the same dir.
