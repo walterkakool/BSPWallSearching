@@ -38,10 +38,10 @@ Note: Please runs this under full-screen.\
 `,/.`  Adjusts the alignments for the four-walls location along x-axis.\
 `-/+`  Adjusts the alignments for the four-walls location along y-axis.
 
-# Guides for using MazeRandomizer.exe
+# MazeRandomizer.exe Guide
 Runs it then a new maze.txt will be in the same dir.
 
-# Guides for modifying maze.txt
+# How to modify maze.txt
 • The height in the title line must be followed by a space. For example: `P1 1024 1024 `;\
 • The width must be exactly 1024; the height must be at least 1024;\
 • (1,1) which is on the bottom-left corner, must be 0;\
