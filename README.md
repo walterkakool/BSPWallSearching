@@ -30,6 +30,7 @@ Note: Please runs this under full-screen.\
 `./WalterKakool/bin/demo`
 
 # BSPMaze.exe Guide (Ver. 1.00)
+***DUE TO PHYSICAL SCREENS ARE DIFFERENT, MAKE SURE TO ADJUST THE FIVE COLORFUL BOXES PROPERLY AT FIRST. THAT'S WHY THE START IS ALWAYS (1,1)***\
 • Download EXEPack.zip.\
 • Copy-paste BSPMaze.exe and maze.txt into the same dir; then run it.\
 • Press F2 to input maze.txt. Wait until the purple is present.\
