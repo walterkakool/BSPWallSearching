@@ -1,5 +1,5 @@
 # Explanation Video
-https://youtu.be/uD_-c1xOv0Y
+[https://youtu.be/uD_-c1xOv0Y](https://youtu.be/J5gBjoXxtCs)
 # Introduction
 This project is developed with Win32 API in C++. In many commercial games, such as CS:GO and Assassin’s Creed, when a location has been given, it does not render everything because the obstructed objects are unseen. Since rendering unseen objects are useless, and scanning the whole input maze is unrealistic when it is big, this app needs an efficient way to abruptly locate the visible objects to current location, based on binary spatial partitions (BSP) in a binary tree.  Such that, BSPWallSearching uses a BSP tree to manage the divided segments. A pre-built BSP tree escalates the process of detecting unblocked objects around the purple location. Meanwhile, this app demonstrates a comparison between BSP and Naïve for the sake of visualizing the efficiency of BSP. 
 
